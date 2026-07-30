@@ -119,7 +119,7 @@ export function applyRedTeam(findings, verdicts) {
 export function renderReportMarkdown(report, meta) {
   const L = []
   L.push([
-    '---', `title: "${meta.title}"`, 'type: research', 'source_tool: agy-deep-research',
+    '---', `title: "${meta.title}"`, 'type: research', 'source_tool: deep-research-agy',
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,
     `created: ${meta.date}`, 'sensitivity: internal', '---', '',
   ].join('\n'))
