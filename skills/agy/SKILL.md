@@ -1,13 +1,13 @@
 ---
-name: deep-research-agy
-description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, passe red-team, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /deep-research-agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans docs/research/agy/."
+name: agy
+description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, passe red-team, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans docs/research/agy/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
 
 Deep research multi-rounds. Ne remplace pas une recherche web ordinaire (`search-builtin` pour un fait, `search-perplexity` pour un tour d'horizon) : ici on boucle via le Workflow `deep-agy` — agy browse plusieurs angles par round, Claude juge couverture et convergence entre rounds, une passe red-team attaque les claims centraux/mono-source, puis synthèse.
 
-> Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `deep-research:deep-research-agy-run` par angle/claim.
+> Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `erom-research:agy-run` par angle/claim.
 
 Requête brute :
 $ARGUMENTS
@@ -36,7 +36,7 @@ echo "DEEP_DIR=$(pwd)/docs/research/agy/.deep/<DATE>-<SLUG>"
 test -f "<SCRIPT>" && test -f "<RENDER>" && echo "PLUGIN_OK" || echo "PLUGIN_BROKEN"
 command -v agy >/dev/null 2>&1 && agy --version || echo "AGY_MISSING"
 ```
-`PLUGIN_BROKEN` → le plugin `deep-research` est mal installé (ou `SCRIPT`/`RENDER` mal résolus) : STOP, ne lance pas le Workflow.
+`PLUGIN_BROKEN` → le plugin `erom-research` est mal installé (ou `SCRIPT`/`RENDER` mal résolus) : STOP, ne lance pas le Workflow.
 `AGY_MISSING` → dire à l'utilisateur d'installer agy (https://antigravity.google) ou de lancer `agy` une fois en terminal pour l'OAuth, puis STOP (ne pas lancer un Workflow multi-rounds contre un agy mort).
 
 ## Étape 2 — Matrice de preuves + angles (Claude raisonne, sans tool)
@@ -74,6 +74,6 @@ où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<res
 Retourne le chemin `WRITE_FILE` + les ~30 premières lignes du fichier rendu (TL;DR + Couverture). Verbatim, ne paraphrase pas.
 
 ## Notes
-- Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `deep-research:deep-research-agy-run` par angle/claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
-- Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/deep-research-agy` aux décisions où la justesse prime.
-- Routage des trois moteurs : `deep-research-agy` = justesse pilotée (matrice, plan gate, red-team) ; `deep-research-grok` = second moteur indépendant hors quota Google ; `deep-research-nlm` = référentiel persistant à réinterroger dans le temps.
+- Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle/claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
+- Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:agy` aux décisions où la justesse prime.
+- Routage des trois moteurs : `agy` = justesse pilotée (matrice, plan gate, red-team) ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.

@@ -8,7 +8,7 @@ _Mis à jour : 2026-07-30_
 
 Prouvé en A/B : le dépôt tel quel exposait `{"skills":[],"agents":[]}` ; la même copie sans cette ligne exposait les 5 composants. `claude plugin validate .` rend `❯ agents: Invalid input`.
 
-Forme retenue : `"agents": ["./agents/deep-research-agy-run.md", "./agents/notebook-creator.md"]`.
+Forme retenue : `"agents": ["./agents/agy-run.md", "./agents/notebook-creator.md"]`.
 
 ## Frontmatter YAML : le ` : ` non quoté
 
@@ -24,7 +24,7 @@ Un délimiteur de fermeture écrit `--- ` (espace en fin de ligne) n'est jamais 
 
 ## `claude plugin update` exige le nom qualifié
 
-`claude plugin update deep-research` → `✘ Plugin "deep-research" not found`. Il faut `claude plugin update deep-research@erom-marketplace`. [candidat 1x - session 2026-07-30]
+`claude plugin update erom-research` → `✘ Plugin "erom-research" not found`. Il faut `claude plugin update erom-research@erom-marketplace`. [candidat 1x - session 2026-07-30]
 
 ## `agy` valide strictement le libellé du modèle
 

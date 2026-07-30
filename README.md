@@ -1,4 +1,4 @@
-# deep-research — trois moteurs de recherche profonde
+# erom-research — trois moteurs de recherche profonde
 
 Plugin Claude Code. Trois moteurs indépendants pour les questions où une
 recherche web d'un coup ne suffit pas, chacun avec un profil de coût, de
@@ -6,9 +6,9 @@ latence et de livrable différent.
 
 | Skill | Moteur | Pilotage | Livrable | Quota consommé |
 |---|---|---|---|---|
-| `deep-research-agy` | Antigravity CLI (Gemini groundé Google) | Claude : matrice de preuves, gate plan, rounds adaptatifs, red-team | rapport cité, tags preuve/inférence/hypothèse | Google |
-| `deep-research-grok` | Grok CLI, workflow builtin `deep-research` | délégué au moteur (plan borné, vérif adversariale sur shard indépendant) | rapport cité + coverage explicite | pool hebdo X |
-| `deep-research-nlm` | NotebookLM (CLI `nlm`) | délégué au moteur (deep search web, import, auto-label) | rapport **+ référentiel persistant** de 40-70 sources | Google (NotebookLM) |
+| `agy` | Antigravity CLI (Gemini groundé Google) | Claude : matrice de preuves, gate plan, rounds adaptatifs, red-team | rapport cité, tags preuve/inférence/hypothèse | Google |
+| `grok` | Grok CLI, workflow builtin `deep-research` | délégué au moteur (plan borné, vérif adversariale sur shard indépendant) | rapport cité + coverage explicite | pool hebdo X |
+| `nlm` | NotebookLM (CLI `nlm`) | délégué au moteur (deep search web, import, auto-label) | rapport **+ référentiel persistant** de 40-70 sources | Google (NotebookLM) |
 
 Choisir : **agy** quand la justesse prime et que tu veux contrôler le plan de
 recherche ; **grok** quand tu veux un second moteur indépendant sans toucher au
@@ -19,12 +19,12 @@ questions au corpus (`nlm notebook query <notebook_id>`, ou la skill personnelle
 ## Usage
 
 ```
-/deep-research-agy  <sujet> [--depth L|H] [--yes]
-/deep-research-grok <sujet> [--budget N] [--detach]
-/deep-research-grok status --latest
-/deep-research-grok list
-/deep-research-nlm  <sujet>
-/deep-research-nlm  list
+/erom-research:agy  <sujet> [--depth L|H] [--yes]
+/erom-research:grok <sujet> [--budget N] [--detach]
+/erom-research:grok status --latest
+/erom-research:grok list
+/erom-research:nlm  <sujet>
+/erom-research:nlm  list
 ```
 
 **agy** — Claude décompose le sujet en matrice de preuves + angles, te montre
@@ -67,7 +67,7 @@ si l'auth est expirée — jamais de findings inventés sur un moteur mort.
 
 ```
 agents/
-  deep-research-agy-run.md   forwarder agy : MODE deep-angle + MODE redteam
+  agy-run.md                 forwarder agy : MODE deep-angle + MODE redteam
   notebook-creator.md        pilote nlm : create → research → import → label → synthèse
 scripts/
   deep-agy.js                Workflow multi-rounds (helpers inlinés, cf. test de synchro)
@@ -82,7 +82,7 @@ scripts/
 Le plugin est autonome : aucun script ni agent hors de sa racine. Le test de
 synchro `deep-agy-sync.test.mjs` verrouille deux invariants — les helpers
 inlinés dans le Workflow restent identiques à la lib, et le Workflow ne cible
-que des agents du namespace `deep-research:`.
+que des agents du namespace `erom-research:`.
 
 ## Licence
 

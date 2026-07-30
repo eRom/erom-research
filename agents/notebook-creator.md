@@ -1,6 +1,6 @@
 ---
 name: notebook-creator
-description: "Création d'un NotebookLM : deep search web Google, import et labellisation des sources, synthèse. Produit un référentiel persistant autour d'un sujet choisi. Spawné par la skill deep-research-nlm."
+description: "Création d'un NotebookLM : deep search web Google, import et labellisation des sources, synthèse. Produit un référentiel persistant autour d'un sujet choisi. Spawné par la skill nlm (plugin erom-research)."
 model: sonnet
 color: yellow
 background: true

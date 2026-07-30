@@ -179,7 +179,7 @@ while (round < MAX_ROUNDS && !converged) {
   const ph = round === 1 ? 'Round 1' : 'Round 2+'
   attemptedAngles.push(...focus)
   const results = (await parallel(focus.map((f, i) => () =>
-    agent(anglePrompt(f, round, i), { label:`r${round}:${f.label}`, phase:ph, schema:ANGLE_SCHEMA, agentType:'deep-research:deep-research-agy-run' })
+    agent(anglePrompt(f, round, i), { label:`r${round}:${f.label}`, phase:ph, schema:ANGLE_SCHEMA, agentType:'erom-research:agy-run' })
   ))).filter(Boolean)
   const novel = ingestRound(results, state, round)
   log(`R${round}: +${novel} findings (${state.findings.length} total, ${state.failedAngles.length} failed angles)`)
@@ -190,7 +190,7 @@ while (round < MAX_ROUNDS && !converged) {
     `List pre-conclusions with confidence. List ranked gaps (recommendationChanging flag). If NOT converged, propose nextFocus (label+query) targeting the top recommendation-changing gaps and any decision-critical/contradiction/recency threads. ` +
     `Set converged=true only if every recommendation-changing row is answered+independent, this round changed nothing material, and no critical threads remain. Report lastRoundChangedMaterially and openCriticalThreads.`,
     { label:`global:r${round}`, phase:ph, schema:GLOBAL_SCHEMA })
-  if (!analysis) { log('deep-research: global analysis returned null — ending round loop with accumulated findings'); break }
+  if (!analysis) { log('erom-research: global analysis returned null — ending round loop with accumulated findings'); break }
   lastAnalysis = analysis
   converged = analysis.converged === true || isConverged({ coverage:analysis.coverage, matrix, lastRoundChangedMaterially:analysis.lastRoundChangedMaterially, openCriticalThreads:analysis.openCriticalThreads })
   focus = (analysis.nextFocus || [])
@@ -202,7 +202,7 @@ while (round < MAX_ROUNDS && !converged) {
 phase('Red-team')
 const targets = rankClaimsForRedTeam(state.findings, RT_TARGETS)
 const verdicts = (await parallel(targets.map((c, i) => () =>
-  agent(redTeamPrompt(c, i), { label:`rt:${c.id}`, phase:'Red-team', schema:REDTEAM_SCHEMA, agentType:'deep-research:deep-research-agy-run' })
+  agent(redTeamPrompt(c, i), { label:`rt:${c.id}`, phase:'Red-team', schema:REDTEAM_SCHEMA, agentType:'erom-research:agy-run' })
 ))).filter(Boolean)
 const survivors = applyRedTeam(state.findings, verdicts)
 

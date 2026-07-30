@@ -1,4 +1,4 @@
-// scripts/tests/deep-agy-sync.test.mjs (plugin deep-research)
+// scripts/tests/deep-agy-sync.test.mjs (plugin erom-research)
 // Garde-fou : les helpers inlinés dans deep-agy.js doivent rester identiques
 // à deep-agy-lib.mjs (les scripts Workflow ne peuvent pas importer de fichier local).
 import { test, expect } from 'bun:test'
@@ -39,7 +39,7 @@ for (const name of SHARED) {
 
 test('deep-agy.js targets the plugin-namespaced forwarder, not a user-scoped agent', () => {
   expect(wf).not.toContain('antigravity:agy-rescue')
-  expect(wf).toMatch(/agentType:\s*'deep-research:deep-research-agy-run'/)
-  // le plugin doit être autonome : aucun agent hors namespace deep-research:
+  expect(wf).toMatch(/agentType:\s*'erom-research:agy-run'/)
+  // le plugin doit être autonome : aucun agent hors namespace erom-research:
   expect(wf).not.toMatch(/agentType:\s*'agy-run'/)
 })

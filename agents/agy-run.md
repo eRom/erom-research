@@ -1,6 +1,6 @@
 ---
-name: deep-research-agy-run
-description: "Forwarder vers Antigravity CLI (agy / Gemini groundé Google) pour les deux primitives browsées du deep research : un angle d'investigation (MODE deep-angle) et l'attaque adversariale d'un claim (MODE redteam). Réservé au Workflow deep-agy de la skill deep-research-agy — ne pas utiliser pour déléguer librement."
+name: agy-run
+description: "Forwarder vers Antigravity CLI (agy / Gemini groundé Google) pour les deux primitives browsées du deep research : un angle d'investigation (MODE deep-angle) et l'attaque adversariale d'un claim (MODE redteam). Réservé au Workflow deep-agy de la skill agy (plugin erom-research) — ne pas utiliser pour déléguer librement."
 color: green
 tools: Bash, Read
 model: haiku

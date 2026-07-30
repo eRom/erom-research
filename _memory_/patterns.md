@@ -4,9 +4,9 @@ _Mis à jour : 2026-07-30_
 
 ## Nommage
 
-- Plugin `deep-research`, dépôt `erom-agence-deep-research` (le préfixe `erom-agence-` du dépôt ne fait pas partie du nom du plugin — même règle que `devil` / `erom-agence-devil`).
-- Skills : `deep-research-<moteur>`. Invocation qualifiée : `/deep-research:deep-research-<moteur>`.
-- Toute référence croisée interne est **namespacée** : `agentType: 'deep-research:deep-research-agy-run'`, `subagent_type: "deep-research:notebook-creator"`. Un nom nu résoudrait vers un agent utilisateur et casserait l'autonomie.
+- Convention 2026-07-30 : plugin `erom-research` = nom du dépôt GitHub `eRom/erom-research` (le dossier local reste `erom-agence-deep-research`, choix assumé pour ne pas casser terminaux et scripts).
+- Skills : le nom du moteur seul, jamais le domaine — `agy`, `grok`, `nlm`. Invocation : `/erom-research:<moteur>`.
+- Toute référence croisée interne est **namespacée** : `agentType: 'erom-research:agy-run'`, `subagent_type: "erom-research:notebook-creator"`. Un nom nu résoudrait vers un agent utilisateur et casserait l'autonomie.
 
 ## Chemins du plugin
 

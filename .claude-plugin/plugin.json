@@ -1,15 +1,15 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "deep-research",
+  "name": "erom-research",
   "description": "Trois moteurs de deep research complémentaires : agy (multi-rounds piloté par Claude — matrice de preuves, gate plan, red-team), grok (moteur indépendant asynchrone hors quota Google) et NotebookLM (référentiel persistant de 40-70 sources, réinterrogeable). Rapports cités sauvés dans docs/research/<moteur>/.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "author": {
     "name": "Romain Ecarnot",
     "url": "https://github.com/eRom"
   },
-  "repository": "https://github.com/eRom/erom-agence-deep-research",
+  "repository": "https://github.com/eRom/erom-research",
   "license": "MIT",
   "keywords": ["deep-research", "research", "agy", "antigravity", "gemini", "grok", "notebooklm", "red-team", "sourcing", "citations"],
   "skills": "./skills/",
-  "agents": ["./agents/deep-research-agy-run.md", "./agents/notebook-creator.md"]
+  "agents": ["./agents/agy-run.md", "./agents/notebook-creator.md"]
 }
