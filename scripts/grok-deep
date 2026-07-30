@@ -1,0 +1,368 @@
+#!/usr/bin/env bun
+// grok-deep — wrapper du workflow builtin deep-research de Grok CLI, pour le skill Claude `grok-deep`.
+//
+// Verdict probe 2026-07-30 (variante A2, GO) : en headless, un prompt worker qui appelle le tool
+// `workflow` (name=deep-research, agent_budget borné) puis BLOQUE jusqu'à complétion tient le tour :
+// 211s, 8 agents / budget 10, rapport authentique (claims [Sx], verif adversariale, coverage).
+// Gotchas figés ici : exec dir HORS repo (grok remonte au .git sinon), --output-format json (pas
+// streaming), PAS de RUST_LOG=debug (250 Mo de logs en 3,5 min au probe), GROK_DISABLE_AUTOUPDATER=1,
+// usage_is_incomplete=true fréquent (tokens = plancher, sous-agents sous-comptés).
+//
+// Modes :
+//   grok-deep run   "<sujet>" [--out-dir D] [--budget N] [--effort E] [--model M] [--timeout-sec N] [--run-id ID]
+//                   → bloquant. Pensé pour être lancé par Claude via Bash run_in_background
+//                     (notification automatique en fin de run). Exit 0 si success|partial, 1 si error.
+//   grok-deep start "<sujet>" [mêmes options]
+//                   → détaché (survit à la session appelante). Exit 0 spawn OK, 127 préflight, 1 spawn fail.
+//   grok-deep status [<run_id>|--latest] [--out-dir D]
+//                   → lit status.json ; répare running+pid mort → error. Exit 0 info, 1 si error.
+//   grok-deep list  [--out-dir D]
+//
+// Layout : <out-dir>/<run_id>.md (rapport final) + <out-dir>/.runs/<run_id>/{status.json,prompt.md,worker.log,grok.json}
+// Exec dir grok : $TMPDIR/grok-deep/<run_id>/ (neutre, hors repo ; sandbox workspace y confine les écritures).
+
+import { spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
+
+const DEFAULT_BUDGET = 24;      // fan-out max d'agents du workflow (slash natif = 128, trop cher)
+const DEFAULT_TIMEOUT_SEC = 2400;
+const MAX_TURNS = 60;
+
+// ---------- helpers ----------
+
+function usage(code: number): never {
+  console.log(`grok-deep — deep research via le workflow builtin de Grok CLI
+
+  grok-deep run    "<sujet>" [--out-dir D] [--budget N] [--effort E] [--model M] [--timeout-sec N]
+  grok-deep start  "<sujet>" [mêmes options]     (détaché, survit à la session)
+  grok-deep status [<run_id>|--latest] [--out-dir D]
+  grok-deep list   [--out-dir D]
+
+  Défauts : out-dir=$PWD/docs/research/grok, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s`);
+  process.exit(code);
+}
+
+function nowIso(): string { return new Date().toISOString(); }
+
+function slugify(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "recherche";
+}
+
+function atomicWriteJson(file: string, obj: unknown): void {
+  const tmp = `${file}.tmp-${process.pid}`;
+  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2) + "\n");
+  fs.renameSync(tmp, file);
+}
+
+function pidAlive(pid: number | null): boolean {
+  if (!pid) return false;
+  try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+function preflight(): void {
+  const which = Bun.which("grok");
+  if (!which) {
+    console.error("PREFLIGHT: binaire `grok` introuvable sur le PATH. Installer Grok CLI puis relancer.");
+    process.exit(127);
+  }
+  const auth = path.join(os.homedir(), ".grok", "auth.json");
+  if (!fs.existsSync(auth)) {
+    console.error("PREFLIGHT: ~/.grok/auth.json absent. Lancer `grok login` une fois en terminal, puis relancer.");
+    process.exit(127);
+  }
+}
+
+type Opts = {
+  outDir: string; budget: number; effort?: string; model?: string;
+  timeoutSec: number; runId?: string; latest?: boolean;
+};
+
+function parseArgs(argv: string[]): { positional: string[]; opts: Opts } {
+  const opts: Opts = { outDir: "", budget: DEFAULT_BUDGET, timeoutSec: DEFAULT_TIMEOUT_SEC };
+  const positional: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    const next = () => { i++; if (i >= argv.length) usage(2); return argv[i]; };
+    if (a === "--out-dir") opts.outDir = next();
+    else if (a === "--budget") opts.budget = parseInt(next(), 10);
+    else if (a === "--effort") opts.effort = next();
+    else if (a === "--model") opts.model = next();
+    else if (a === "--timeout-sec") opts.timeoutSec = parseInt(next(), 10);
+    else if (a === "--run-id") opts.runId = next();
+    else if (a === "--latest") opts.latest = true;
+    else if (a === "--help" || a === "-h") usage(0);
+    else if (a.startsWith("--")) { console.error(`Option inconnue : ${a}`); usage(2); }
+    else positional.push(a);
+  }
+  if (!opts.outDir) opts.outDir = path.join(process.cwd(), "docs", "research", "grok");
+  opts.outDir = path.resolve(opts.outDir);
+  if (!Number.isFinite(opts.budget) || opts.budget < 1 || opts.budget > 1024) {
+    console.error("--budget doit être entre 1 et 1024"); process.exit(2);
+  }
+  if (!Number.isFinite(opts.timeoutSec) || opts.timeoutSec < 60) {
+    console.error("--timeout-sec doit être >= 60"); process.exit(2);
+  }
+  return { positional, opts };
+}
+
+function uniqueRunId(outDir: string, slug: string): string {
+  const date = nowIso().slice(0, 10);
+  let id = `${date}-${slug}`;
+  let n = 2;
+  while (fs.existsSync(path.join(outDir, ".runs", id))) { id = `${date}-${slug}-${n}`; n++; }
+  return id;
+}
+
+function workerPrompt(query: string, budget: number): string {
+  return `You are a headless research worker. Follow these steps exactly, in order.
+
+1. Call the \`workflow\` tool to launch the built-in deep-research workflow:
+   - name: "deep-research"
+   - agent_budget: ${budget}
+   - args: { "query": ${JSON.stringify(query)} }
+
+2. The workflow tool may return immediately while the research continues in the background. You MUST keep this turn alive until the deep-research workflow has fully completed. If waiting primitives are available (get_command_or_subagent_output, wait_commands_or_subagents, or a workflow status/wait mechanism), use them to block until completion. Never end your turn while the workflow is still running.
+
+3. When the workflow completes, write the COMPLETE final report as markdown to the file \`report.md\` in the current working directory, using your file writing tool. Preserve the workflow's verification status (Verified/Partial), its claims with their source locators, the sources list, and its coverage limitations, verbatim.
+
+4. End your reply with exactly one final line:
+   GROK_DEEP_STATUS: success
+   (workflow completed and the report is Verified)
+   GROK_DEEP_STATUS: partial
+   (workflow completed and the report is Partial)
+   GROK_DEEP_STATUS: error <one short reason>
+   (workflow failed or no report could be obtained)
+
+Rules:
+- Do NOT perform the research yourself with web_search or web_fetch; the deep-research workflow is the researcher. Your only jobs are: launch, wait, persist the report, report status.
+- If the \`workflow\` tool is unavailable or rejects the launch, do not improvise a manual research: end with \`GROK_DEEP_STATUS: error tool-unavailable\`.
+- \`report.md\` is the deliverable. If it was not written, the status must be error.
+`;
+}
+
+type Status = {
+  run_id: string; status: "running" | "success" | "partial" | "error";
+  query: string; report_path: string | null; grok_status: "verified" | "partial" | null;
+  error: string | null; note: string | null;
+  started_at: string; finished_at: string | null; duration_ms: number | null;
+  pid: number | null; session_id: string | null;
+  budget: number; model: string | null; effort: string | null;
+  num_turns: number | null; usage: unknown; model_usage: unknown; usage_is_incomplete: boolean | null;
+  exec_dir: string; worker_log: string; repaired_at?: string;
+};
+
+// ---------- run (bloquant) ----------
+
+async function cmdRun(query: string, opts: Opts): Promise<never> {
+  preflight();
+  const outDir = opts.outDir;
+  const runId = opts.runId ?? uniqueRunId(outDir, slugify(query));
+  const runDir = path.join(outDir, ".runs", runId);
+  const execDir = path.join(os.tmpdir(), "grok-deep", runId);
+  const reportFinal = path.join(outDir, `${runId}.md`);
+  const statusPath = path.join(runDir, "status.json");
+  const workerLog = path.join(runDir, "worker.log");
+  fs.mkdirSync(runDir, { recursive: true });
+  fs.mkdirSync(execDir, { recursive: true });
+
+  const promptFile = path.join(runDir, "prompt.md");
+  fs.writeFileSync(promptFile, workerPrompt(query, opts.budget));
+
+  const startedAt = nowIso();
+  const st: Status = {
+    run_id: runId, status: "running", query, report_path: null, grok_status: null,
+    error: null, note: null, started_at: startedAt, finished_at: null, duration_ms: null,
+    pid: process.pid, session_id: null, budget: opts.budget,
+    model: opts.model ?? null, effort: opts.effort ?? null,
+    num_turns: null, usage: null, model_usage: null, usage_is_incomplete: null,
+    exec_dir: execDir, worker_log: workerLog,
+  };
+  atomicWriteJson(statusPath, st);
+  console.log(JSON.stringify({ event: "started", run_id: runId, status_path: statusPath, report_path_expected: reportFinal }));
+
+  const args = [
+    "--prompt-file", promptFile,
+    "--cwd", execDir,
+    "--sandbox", "workspace",
+    "--permission-mode", "bypassPermissions",
+    "--output-format", "json",
+    "--max-turns", String(MAX_TURNS),
+    "--no-plan",
+  ];
+  if (opts.model) args.push("-m", opts.model);
+  if (opts.effort) args.push("--reasoning-effort", opts.effort);
+
+  const errFd = fs.openSync(workerLog, "a");
+  const t0 = Date.now();
+  const proc = spawn("grok", args, {
+    env: { ...process.env, GROK_DISABLE_AUTOUPDATER: "1" },
+    stdio: ["ignore", "pipe", errFd],
+  });
+
+  // Empêche l'idle sleep macOS pendant le run (best effort ; s'éteint avec le pid grok).
+  try { spawn("caffeinate", ["-i", "-w", String(proc.pid)], { stdio: "ignore", detached: true }).unref(); } catch {}
+
+  let stdout = "";
+  proc.stdout!.on("data", (d) => { stdout += d.toString(); });
+
+  let timedOut = false;
+  const killTimer = setTimeout(() => {
+    timedOut = true;
+    try { proc.kill("SIGTERM"); } catch {}
+    setTimeout(() => { try { proc.kill("SIGKILL"); } catch {} }, 30_000).unref?.();
+  }, opts.timeoutSec * 1000);
+  killTimer.unref?.();
+
+  const exitCode: number = await new Promise((res) => proc.on("close", (c) => res(c ?? 1)));
+  clearTimeout(killTimer);
+  fs.closeSync(errFd);
+  st.duration_ms = Date.now() - t0;
+  st.finished_at = nowIso();
+
+  // Trace brute pour debug/reprise.
+  try { fs.writeFileSync(path.join(runDir, "grok.json"), stdout); } catch {}
+
+  let parsed: any = null;
+  try { parsed = JSON.parse(stdout.slice(stdout.indexOf("{"))); } catch {}
+  if (parsed) {
+    st.session_id = parsed.sessionId ?? null;
+    st.num_turns = parsed.num_turns ?? null;
+    st.usage = parsed.usage ?? null;
+    st.model_usage = parsed.modelUsage ?? null;
+    st.usage_is_incomplete = parsed.usage_is_incomplete ?? false;
+  }
+
+  // Rapport : écrit par le worker dans son cwd (exec dir), rapatrié ici (ordre : rapport puis flip status).
+  const reportSrc = path.join(execDir, "report.md");
+  let reportOk = false;
+  if (fs.existsSync(reportSrc) && fs.statSync(reportSrc).size > 0) {
+    fs.copyFileSync(reportSrc, reportFinal);
+    st.report_path = reportFinal;
+    reportOk = true;
+    const head = fs.readFileSync(reportFinal, "utf8").slice(0, 500);
+    const m = head.match(/\*\*Status:\s*(Verified|Partial)\*\*/i);
+    if (m) st.grok_status = m[1].toLowerCase() as "verified" | "partial";
+  }
+
+  const text: string = parsed?.text ?? "";
+  const lines = [...text.matchAll(/GROK_DEEP_STATUS:\s*(success|partial|error)\s*(.*)/g)];
+  const last = lines.length ? lines[lines.length - 1] : null;
+
+  if (timedOut) {
+    st.status = "error"; st.error = `timeout après ${opts.timeoutSec}s`;
+  } else if (!reportOk) {
+    st.status = "error";
+    st.error = last?.[1] === "error" ? `worker: ${(last[2] || "erreur non précisée").trim()}` : `pas de rapport (grok exit ${exitCode})`;
+  } else if (exitCode !== 0) {
+    st.status = "error"; st.error = `grok exit ${exitCode} (rapport présent mais run non fiable)`;
+  } else if (last?.[1] === "success") {
+    st.status = "success";
+  } else if (last?.[1] === "partial") {
+    st.status = "partial";
+  } else if (last?.[1] === "error") {
+    st.status = "error"; st.error = `worker: ${(last[2] || "erreur non précisée").trim()}`;
+  } else {
+    st.status = st.grok_status === "verified" ? "success" : "partial";
+    st.note = "ligne GROK_DEEP_STATUS absente de la sortie ; statut déduit de l'en-tête du rapport";
+  }
+
+  atomicWriteJson(statusPath, st);
+  console.log(JSON.stringify({
+    event: "final", run_id: runId, status: st.status, grok_status: st.grok_status,
+    report_path: st.report_path, status_path: statusPath, duration_ms: st.duration_ms,
+    usage_is_incomplete: st.usage_is_incomplete,
+  }));
+  process.exit(st.status === "error" ? 1 : 0);
+}
+
+// ---------- start (détaché) ----------
+
+function cmdStart(query: string, opts: Opts, rawArgv: string[]): never {
+  preflight();
+  const runId = opts.runId ?? uniqueRunId(opts.outDir, slugify(query));
+  const runDir = path.join(opts.outDir, ".runs", runId);
+  fs.mkdirSync(runDir, { recursive: true });
+  const logFd = fs.openSync(path.join(runDir, "start.log"), "a");
+  // rawArgv[0] est la commande "start" ; tout le reste (sujet + options) est re-forwardé tel quel.
+  const child = spawn(process.execPath, [process.argv[1], "run", ...rawArgv.slice(1), "--run-id", runId], {
+    detached: true, stdio: ["ignore", logFd, logFd],
+  });
+  child.unref();
+  fs.closeSync(logFd);
+  if (!child.pid) { console.error("spawn du worker détaché impossible"); process.exit(1); }
+  console.log(JSON.stringify({
+    event: "started", detached: true, run_id: runId,
+    status_path: path.join(runDir, "status.json"),
+    report_path_expected: path.join(opts.outDir, `${runId}.md`),
+  }));
+  process.exit(0);
+}
+
+// ---------- status / list ----------
+
+function loadRuns(outDir: string): { dir: string; st: Status }[] {
+  const runsDir = path.join(outDir, ".runs");
+  if (!fs.existsSync(runsDir)) return [];
+  const out: { dir: string; st: Status }[] = [];
+  for (const d of fs.readdirSync(runsDir)) {
+    const f = path.join(runsDir, d, "status.json");
+    if (!fs.existsSync(f)) continue;
+    try { out.push({ dir: path.join(runsDir, d), st: JSON.parse(fs.readFileSync(f, "utf8")) }); } catch {}
+  }
+  return out.sort((a, b) => (b.st.started_at || "").localeCompare(a.st.started_at || ""));
+}
+
+function repairIfDead(dir: string, st: Status): Status {
+  if (st.status === "running" && !pidAlive(st.pid)) {
+    st.status = "error";
+    st.error = "worker mort sans statut terminal (crash, kill ou sleep machine)";
+    st.repaired_at = nowIso();
+    atomicWriteJson(path.join(dir, "status.json"), st);
+  }
+  return st;
+}
+
+function cmdStatus(target: string | undefined, opts: Opts): never {
+  const runs = loadRuns(opts.outDir);
+  if (!runs.length) { console.error(`Aucun run sous ${opts.outDir}/.runs`); process.exit(1); }
+  let entry = opts.latest || !target ? runs[0] : runs.find((r) => r.st.run_id === target);
+  if (!entry) { console.error(`Run introuvable : ${target}`); process.exit(1); }
+  const st = repairIfDead(entry.dir, entry.st);
+  console.log(JSON.stringify(st, null, 2));
+  process.exit(st.status === "error" ? 1 : 0);
+}
+
+function cmdList(opts: Opts): never {
+  const runs = loadRuns(opts.outDir);
+  if (!runs.length) { console.log(`Aucun run sous ${opts.outDir}/.runs`); process.exit(0); }
+  for (const r of runs) {
+    const st = repairIfDead(r.dir, r.st);
+    const dur = st.duration_ms ? `${Math.round(st.duration_ms / 1000)}s` : "-";
+    console.log(`${st.run_id}  ${st.status.padEnd(7)}  ${dur.padStart(5)}  ${st.query.slice(0, 70)}`);
+  }
+  process.exit(0);
+}
+
+// ---------- main ----------
+
+const [cmd, ...rest] = process.argv.slice(2);
+if (!cmd || cmd === "--help" || cmd === "-h") usage(cmd ? 0 : 2);
+const { positional, opts } = parseArgs(rest);
+
+if (cmd === "run") {
+  if (!positional.length) { console.error("run : sujet manquant"); usage(2); }
+  await cmdRun(positional.join(" "), opts);
+} else if (cmd === "start") {
+  if (!positional.length) { console.error("start : sujet manquant"); usage(2); }
+  cmdStart(positional.join(" "), opts, process.argv.slice(2));
+} else if (cmd === "status") {
+  cmdStatus(positional[0], opts);
+} else if (cmd === "list") {
+  cmdList(opts);
+} else {
+  console.error(`Commande inconnue : ${cmd}`);
+  usage(2);
+}
