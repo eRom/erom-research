@@ -1,0 +1,32 @@
+# Architecture
+
+_Mis à jour : 2026-07-30_
+
+**Type** : plugin Claude Code, distribué via `erom-marketplace` (dépôt public `eRom/erom-agence-deep-research`).
+
+**Objectif** : trois moteurs de deep research complémentaires, un seul flux (question → moteur → Claude traite le rapport).
+
+| Skill | Moteur | Transport | Synchronicité |
+|---|---|---|---|
+| `deep-research-agy` | Antigravity CLI (Gemini groundé Google) | Workflow `deep-agy.js` + subagents | bloquant, 5-15 min |
+| `deep-research-grok` | Grok CLI, workflow builtin `deep-research` | CLI wrapper `grok-deep` | asynchrone (`run_in_background`) |
+| `deep-research-nlm` | NotebookLM (CLI `nlm`) | subagent `notebook-creator` (`background: true`) | asynchrone, 10-20 min |
+
+**Stack** : markdown (skills, agents), JS/ESM (Workflow + lib de rendu), Python 3 (runners agy), TypeScript sur Bun (CLI grok-deep).
+
+```
+.claude-plugin/plugin.json   manifeste
+skills/deep-research-{agy,grok,nlm}/SKILL.md
+agents/                      deep-research-agy-run.md, notebook-creator.md
+scripts/                     deep-agy.js, deep-agy-lib.mjs, render-report.mjs,
+                             agy_scratch.py, recover_transcript.py, grok-deep
+scripts/tests/               bun (2 fichiers) + python (1 fichier)
+```
+
+**Flux agy** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-agy.js)` → N angles en parallèle par round via subagents `deep-research:deep-research-agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
+
+**Sorties** : `docs/research/{agy,grok,nlm}/` du projet courant, jamais dans le plugin.
+
+**Dépendances externes critiques** : binaires `agy`, `grok` (+ `bun`), `nlm`, `node`. Chaque skill fait son préflight et s'arrête si le binaire manque ou si l'auth est expirée.
+
+**Autonomie** : aucune référence hors racine du plugin. Le forwarder agy embarque ses propres `agy_scratch.py` et `recover_transcript.py` plutôt que de dépendre de l'agent `agy-run` de `~/.claude` (qui sert les 4 skills multimodales et ne porte plus les modes deep).
