@@ -80,10 +80,19 @@ def main():
     to = a.timeout if str(a.timeout).endswith("s") else f"{a.timeout}s"
     cmd = [agy, "--dangerously-skip-permissions", "--model", a.model, "--add-dir", scratch,
            "--print-timeout", to, "--print", prompt]
+    quota_hit = False
     try:
-        subprocess.run(cmd, input="", capture_output=True, text=True, encoding="utf-8",
-                       errors="ignore", cwd=scratch,
-                       timeout=int(str(a.timeout).rstrip("s")) + 30, check=False)
+        r = subprocess.run(cmd, input="", capture_output=True, text=True, encoding="utf-8",
+                           errors="ignore", cwd=scratch,
+                           timeout=int(str(a.timeout).rstrip("s")) + 30, check=False)
+        blob = (r.stdout or "") + (r.stderr or "")
+        if "Individual quota reached" in blob or "RESOURCE_EXHAUSTED" in blob:
+            quota_hit = True
+            # le message porte le délai de reset : le remonter tel quel à l'orchestrateur
+            for line in blob.splitlines():
+                if "Individual quota reached" in line or "RESOURCE_EXHAUSTED" in line:
+                    print(f"QUOTA {line.strip()}")
+                    break
     except Exception as e:
         print(f"agy run error: {e}")
 
@@ -103,6 +112,10 @@ def main():
             print(f"MISSING {fp}"); missing += 1
 
     shutil.rmtree(scratch, ignore_errors=True)
+    # 3 = quota épuisé : distinct d'un simple échec de production (1), pour que
+    # l'orchestrateur puisse couper le fan-out au lieu de dispatcher le round suivant.
+    if quota_hit:
+        return 3
     return 1 if missing else 0
 
 

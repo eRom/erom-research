@@ -39,6 +39,25 @@ command -v agy >/dev/null 2>&1 && agy --version || echo "AGY_MISSING"
 `PLUGIN_BROKEN` → le plugin `erom-research` est mal installé (ou `SCRIPT`/`RENDER` mal résolus) : STOP, ne lance pas le Workflow.
 `AGY_MISSING` → dire à l'utilisateur d'installer agy (https://antigravity.google) ou de lancer `agy` une fois en terminal pour l'OAuth, puis STOP (ne pas lancer un Workflow multi-rounds contre un agy mort).
 
+## Circuit-breaker quota (obligatoire)
+
+`agy_scratch.py` rend **3** quand agy a répondu `Individual quota reached` / `RESOURCE_EXHAUSTED`,
+et imprime une ligne `QUOTA <message>` qui porte le délai de reset exact.
+
+Règle du workflow, non négociable :
+
+- **Dès qu'un stage rend 3**, ne dispatcher aucun round supplémentaire. Terminer le round en cours
+  (les agents déjà lancés vivront leur vie), puis STOP.
+- **Rapport immédiat à Romain** : nombre d'angles aboutis / tentés, délai de reset annoncé par agy,
+  et la proposition de bascule sur `/erom-research:grok` (hors quota Google) ou de reprise après reset.
+- **Ne jamais relancer automatiquement** après un reset : c'est un arbitrage de Romain, pas du workflow.
+
+Un pré-vol `agy --version` prouve que le binaire est là, **jamais** qu'il reste du budget : quota
+épuisé, `agy --version` répond normalement. Ne pas confondre les deux.
+
+> Mesure du 29-30/07/2026 : sans ce breaker, 215 appels agy pour 62 sorties utiles (78 % de perte),
+> et un round entier dispatché 6 minutes après un round précédent échoué à 100 % sur quota.
+
 ## Étape 2 — Matrice de preuves + angles (Claude raisonne, sans tool)
 
 Décompose `<sujet>` en :
@@ -60,6 +79,8 @@ Workflow({
 ```
 Attends le résultat `{ report, coverage, rounds, converged }`. `report` est déjà au schéma et `report.coverage` est pré-calculé (déterministe) — ne pas recomputer.
 
+Pendant le run, le circuit-breaker quota ci-dessus s'applique : un stage à **3** coupe le fan-out, aucun round de plus.
+
 ## Étape 5 — Rendu (Claude, après le Workflow)
 
 N'écris pas le markdown à la main. Écris `{ report, meta }` dans `<DEEP_DIR>/_render.json` (Write) puis rends via le CLI (UN Bash) :
@@ -72,6 +93,22 @@ où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<res
 ## Étape 6 — Retour
 
 Retourne le chemin `WRITE_FILE` + les ~30 premières lignes du fichier rendu (TL;DR + Couverture). Verbatim, ne paraphrase pas.
+
+### Clôture de run — ordre imposé
+
+La **première phrase** rendue à Romain porte la couverture, pas la complétion technique :
+
+> « <domaine> : X angles aboutis sur Y, convergé / non convergé, N pièces. » puis, ensuite seulement,
+> durée, nombre d'agents et volume de tokens.
+
+Interdit : dériver un « 0 erreur » / « aucune erreur » de la complétion du workflow. Le workflow qui se
+termine sans crasher n'est pas un run sans échec — le champ `result.coverage` est la seule source sur
+la couverture. Si des angles ont échoué, la phrase de clôture le dit, avec la cause dominante réelle
+(lue dans les retours des agents, pas supposée).
+
+> Mesure des 29-30/07/2026 : 4 runs sur 4 annoncés « 0 erreur » / « aucun angle en échec » ; couverture
+> réelle 17/35, 20/31, 9/27 et 15/29. Sur écologie-énergie, la couverture réelle n'a jamais été dite en
+> chat — elle n'existe que dans le rapport et le message de commit.
 
 ## Notes
 - Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle/claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
