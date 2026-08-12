@@ -47,7 +47,8 @@ Le renommage doit être atomique : le moindre chemin oublié casse le workflow a
 - Rename: `plugin/scripts/tests/deep-agy-lib.test.mjs` vers `plugin/scripts/tests/deep-research-lib.test.mjs`
 - Rename: `plugin/scripts/tests/deep-agy-sync.test.mjs` vers `plugin/scripts/tests/deep-research-sync.test.mjs`
 - Modify: `plugin/scripts/render-report.mjs:5`, `plugin/skills/agy/SKILL.md:8,19`, `plugin/README.md:73,74,83`
-- Modify: `_memory_/architecture.md:21,26`, `_memory_/patterns.md:21`, `_memory_/key-files.md:30,31,41,42`, `_memory_/gotchas.md:37`
+- Modify: `plugin/agents/agy-run.md:3,70,94` (trois mentions du nom du Workflow dans la description et les modes)
+- Modify: `_memory_/architecture.md:11,21,26`, `_memory_/patterns.md:21`, `_memory_/key-files.md:30,31,41,42`, `_memory_/gotchas.md:37`
 
 **Interfaces:**
 - Consumes: rien
@@ -124,15 +125,29 @@ git mv tests/deep-agy-sync.test.mjs tests/deep-research-sync.test.mjs
 
 `skills/agy/SKILL.md:8` : « via le Workflow `deep-agy` » devient « via le Workflow `erom-deep-research` ».
 
-`README.md:73,74,83` et les quatre fichiers `_memory_/` : substituer les noms de fichiers.
+`tests/deep-research-sync.test.mjs:40` : le **nom** du test cite `deep-agy.js`, le renommer en
+`deep-research.js`. Le test lui-même sera remplacé en Task 4, mais son nom doit être juste dès
+maintenant pour que la porte du Step 7 puisse passer.
+
+`agents/agy-run.md:3,70,94` : trois mentions de « Workflow deep-agy » dans la description du
+frontmatter et dans les deux modes. Remplacer par `erom-deep-research`. Ne rien changer
+d'autre dans ce fichier, la Task 5 en est propriétaire pour le reste.
+
+`README.md:73,74,83` et les cinq emplacements `_memory_/` (dont `architecture.md:11`, la ligne
+du tableau des moteurs) : substituer les noms de fichiers.
 
 - [ ] **Step 7: Vérifier qu'aucune référence morte ne subsiste**
 
 ```bash
 cd /Users/recarnot/dev/erom-agence-deep-research
-grep -rn "deep-agy" --include="*.md" --include="*.mjs" --include="*.js" . | grep -v "^./docs/superpowers"
+grep -rn "deep-agy" --include="*.md" --include="*.mjs" --include="*.js" . \
+  | grep -v -e "^\./docs/superpowers" -e "^\./\.superpowers"
 ```
 Attendu : **aucune sortie**. Toute ligne restante est une référence morte à corriger.
+
+Les deux exclusions sont nécessaires : `docs/superpowers/` porte la spec et le plan, qui citent
+légitimement l'ancien nom en racontant le renommage, et `.superpowers/sdd/` porte le ledger et
+les rapports de revue, que `grep -r` visite bien qu'ils soient dans un dossier caché.
 
 - [ ] **Step 8: Suite verte après renommage**
 
@@ -237,8 +252,17 @@ Attendu : FAIL, `aggregateVotes` n'est pas exportée.
 
 Ce bloc a été exécuté et validé sur les 8 cas ci-dessus avant rédaction du plan. Le transcrire verbatim dans `deep-research-lib.mjs`, juste avant `renderReportMarkdown` :
 
+> **Ne jamais déstructurer dans la liste de paramètres ici.** `extractFn`, dans le test de
+> synchro, localise le corps d'une fonction par la première `{` rencontrée après son nom.
+> Avec `function aggregateVotes(verdicts, { votesCast = 3 } = {})`, cette première accolade
+> est celle du motif de déstructuration : l'extraction s'arrête sur son accolade fermante et
+> le test compare deux fois la même chaîne de signature. Vérifié en exécutant `extractFn` sur
+> deux corps volontairement divergents : ils sont vus comme égaux. Le garde-fou serait un
+> test vide, et le corps pourrait diverger à 100% entre la lib et le workflow sans rougir.
+
 ```js
-export function aggregateVotes(verdicts, { votesCast = 3, threshold = 2 } = {}) {
+export function aggregateVotes(verdicts, opts) {
+  const { votesCast = 3, threshold = 2 } = opts || {}
   const valid = (verdicts || []).filter(Boolean)
   const erroredVotes = Math.max(0, votesCast - valid.length)
   const base = { validVotes: valid.length, erroredVotes }
@@ -369,17 +393,27 @@ Dans `renderReportMarkdown`, section Couverture, juste après la ligne `Sources 
   if (c.unverifiedClaims) L.push(`- Claims non vérifiables : ${c.unverifiedClaims} (vérificateurs en échec, ni confirmés ni réfutés)`)
 ```
 
-- [ ] **Step 6: Vérifier que tout passe**
+- [ ] **Step 6: Inliner immédiatement les deux helpers modifiés**
+
+`applyRedTeam` et `computeCoverage` sont sous garde-fou de synchro octet à octet. Les
+modifier dans la lib sans les inliner dans le même commit rend la suite rouge. Copier
+verbatim les deux corps modifiés depuis `deep-research-lib.mjs` vers le bloc INLINED de
+`deep-research.js`, en retirant le mot-clé `export`. Copier-coller, ne pas retaper.
+
+`renderReportMarkdown` n'est pas inlinée et ne se recopie pas.
+
+- [ ] **Step 7: Vérifier que tout passe, synchro comprise**
 
 ```bash
 cd plugin && bun test scripts/tests/
 ```
-Attendu : 30 pass, 0 fail.
+Attendu : 30 pass, 0 fail. Si un test `inline applyRedTeam matches lib` ou
+`inline computeCoverage matches lib` échoue, la copie du Step 6 n'est pas verbatim.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add plugin/scripts/deep-research-lib.mjs plugin/scripts/tests/deep-research-lib.test.mjs
+git add plugin/scripts/deep-research-lib.mjs plugin/scripts/deep-research.js plugin/scripts/tests/deep-research-lib.test.mjs
 git commit -m "feat(research): les claims non verifiables traversent au lieu de disparaitre
 
 Une claim dont les verificateurs ont plante etait jusqu'ici traitee comme
@@ -409,7 +443,6 @@ Dans `deep-research-sync.test.mjs`, ajouter `'aggregateVotes'` à la fin du tabl
 test('le workflow ne cible que des agents du namespace erom-research:', () => {
   expect(wf).not.toContain('antigravity:agy-rescue')
   expect(wf).toMatch(/agentType:\s*'erom-research:agy-run'/)
-  expect(wf).toMatch(/agentType:\s*'erom-research:claude-run'/)
   expect(wf).not.toMatch(/agentType:\s*'agy-run'/)
   // Tout agentType litteral du workflow doit porter le prefixe du plugin.
   const declared = [...wf.matchAll(/agentType:\s*'([^']+)'/g)].map(m => m[1])
@@ -418,29 +451,32 @@ test('le workflow ne cible que des agents du namespace erom-research:', () => {
 })
 ```
 
+L'assertion portant sur `claude-run` est délibérément absente ici : cet agent n'est
+référencé par le workflow qu'à la Task 6, qui ajoutera son assertion. Une tâche ne
+laisse jamais la suite rouge derrière elle.
+
 - [ ] **Step 2: Lancer et vérifier l'échec**
 
 ```bash
 cd plugin && bun test scripts/tests/deep-research-sync.test.mjs
 ```
-Attendu : FAIL sur `aggregateVotes` absente du workflow, et FAIL sur `claude-run` absent.
+Attendu : FAIL sur `inline aggregateVotes matches lib`, la fonction étant absente du workflow.
 
-- [ ] **Step 3: Inliner les trois fonctions**
+- [ ] **Step 3: Inliner aggregateVotes**
 
-Copier verbatim depuis `deep-research-lib.mjs` vers le bloc INLINED de `deep-research.js`, en retirant le mot-clé `export` :
+Copier verbatim `aggregateVotes` depuis `deep-research-lib.mjs` vers le bloc INLINED de
+`deep-research.js`, en retirant le mot-clé `export`. Le test compare octet à octet :
+copier-coller, ne pas retaper.
 
-- `aggregateVotes` : ajouter la fonction complète
-- `applyRedTeam` : remplacer le corps existant par la version de la Task 3
-- `computeCoverage` : remplacer le corps existant par la version de la Task 3
+`applyRedTeam` et `computeCoverage` ont déjà été inlinés à la Task 3, dans le même commit
+que leur modification. Ne pas y retoucher.
 
-Le test compare octet à octet : copier-coller, ne pas retaper.
-
-- [ ] **Step 4: Vérifier la synchro des dix premiers helpers**
+- [ ] **Step 4: Vérifier que toute la suite est verte**
 
 ```bash
-cd plugin && bun test scripts/tests/deep-research-sync.test.mjs
+cd plugin && bun test scripts/tests/
 ```
-Attendu : les 11 tests d'inlining passent, seul le test de namespace échoue encore (`claude-run` n'est pas référencé avant la Task 6).
+Attendu : 31 pass, 0 fail. Les 11 tests d'inlining passent et le test de namespace aussi.
 
 - [ ] **Step 5: Commit**
 
@@ -542,17 +578,37 @@ Dans `plugin/agents/agy-run.md`, insérer juste sous le titre `### MODE: redteam
 > consommer trois appels de quota Google par claim.
 ```
 
-- [ ] **Step 3: Vérifier que l'agent est bien découvert**
+- [ ] **Step 3: Enregistrer l'agent dans le manifeste du plugin**
 
-```bash
-cd /Users/recarnot/dev/erom-agence-deep-research && head -8 plugin/agents/claude-run.md
+**Sans ce step, l'agent n'existe pas.** `plugin/.claude-plugin/plugin.json` déclare
+`"skills": "./skills/"` (un dossier, donc auto-découvert) mais `"agents"` est une **liste
+explicite**. Créer le fichier ne suffit pas à l'enregistrer.
+
+Remplacer la ligne `agents` par :
+
+```json
+  "agents": ["./agents/agy-run.md", "./agents/notebook-creator.md", "./agents/claude-run.md"]
 ```
-Attendu : le frontmatter contient `name: claude-run`, `tools: WebSearch, WebFetch` et `model: sonnet`.
 
-- [ ] **Step 4: Commit**
+Si ce step est omis, `agentType: 'erom-research:claude-run'` posé en Task 6 ne résoudra aucun
+agent, tous les angles du moteur claude échoueront au premier run de la Task 9, et rien ne
+l'aura signalé avant : le garde-fou de namespace vérifie que la chaîne du workflow porte le
+bon préfixe, pas que l'agent existe. La suite de tests reste verte de bout en bout.
+
+- [ ] **Step 4: Vérifier l'enregistrement, pas seulement l'écriture du fichier**
 
 ```bash
-git add plugin/agents/claude-run.md plugin/agents/agy-run.md
+cd /Users/recarnot/dev/erom-agence-deep-research
+grep -n "claude-run" plugin/.claude-plugin/plugin.json && head -8 plugin/agents/claude-run.md
+```
+Attendu : le manifeste cite `./agents/claude-run.md`, et le frontmatter contient
+`name: claude-run`, `tools: WebSearch, WebFetch` et `model: sonnet`. La découverte effective
+ne sera constatable qu'après le `/reload-plugins` de la Task 9.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add plugin/agents/claude-run.md plugin/agents/agy-run.md plugin/.claude-plugin/plugin.json
 git commit -m "feat(research): agent claude-run, chercheur natif WebSearch/WebFetch
 
 Porte la doctrine de recherche qui fait la difference de qualite : requetes
@@ -577,7 +633,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Remplacer les constructeurs de prompt**
 
-Remplacer les lignes 166 à 168 de `deep-research.js` (`anglePrompt` et `redTeamPrompt` actuels ; `redTeamPrompt` est traité en Task 7) par la table :
+Remplacer les **seules** lignes 166 à 168 de `deep-research.js`, qui portent `anglePrompt` et
+rien d'autre, par la table ci-dessous.
+
+Ne pas toucher aux lignes 169 et 170 (`redTeamPrompt`) : elles restent appelées par la phase
+Red-team jusqu'à leur suppression en Task 7. Les supprimer ici laisserait un `ReferenceError`
+garanti au premier run, que ni `bun test` ni le test de synchro ne détectent.
 
 ```js
 const ENGINES = {
@@ -628,21 +689,40 @@ Même ajout sur l'appel de synthèse (`label: 'synthesize'`). Ne jamais y ajoute
 - [ ] **Step 4: Vérifier la syntaxe du fichier**
 
 ```bash
-cd plugin && bun build scripts/deep-research.js --target=node > /dev/null && echo "SYNTAXE OK"
+cd plugin && bun -e 'const s=require("fs").readFileSync("scripts/deep-research.js","utf8"); try { new (Object.getPrototypeOf(async function(){}).constructor)(s.replace(/^export /gm,"")); console.log("SYNTAXE OK") } catch(e) { console.error("SYNTAXE KO:", e.message); process.exit(1) }'
 ```
-Attendu : `SYNTAXE OK`. Si `bun build` échoue pour cause de globals du realm Workflow (`agent`, `parallel`, `phase`, `log`, `args`), utiliser à la place `bun -e "new Function(require('fs').readFileSync('scripts/deep-research.js','utf8'))" && echo "SYNTAXE OK"`, qui parse sans exécuter.
+Attendu : `SYNTAXE OK`, exit 0. Sur du code cassé : `SYNTAXE KO: <message>`, exit 1.
 
-- [ ] **Step 5: Vérifier que la synchro tient toujours**
+Ne pas remplacer par `bun build`, qui échoue toujours sur ce fichier (`Top-level return cannot
+be used inside an ECMAScript module`, le script se terminant par un `return` racine), ni par
+`bun -e "new Function(...)"` seul, qui sort en 0 même sur du code invalide et donne donc un
+faux positif systématique. Les deux ont été mesurés. Le constructeur `AsyncFunction` utilisé
+ici accepte le `await` et le `return` de niveau racine, et le `replace` neutralise l'unique
+`export` de la ligne 1.
+
+C'est la seule barrière syntaxique du chantier : la suite bun ne parse jamais le workflow, le
+test de synchro le lit comme du texte.
+
+- [ ] **Step 5: Ajouter l'assertion claude-run au garde-fou**
+
+Maintenant que le workflow référence le second agent, ajouter dans le test de namespace de
+`deep-research-sync.test.mjs`, juste après l'assertion sur `agy-run` :
+
+```js
+  expect(wf).toMatch(/agentType:\s*'erom-research:claude-run'/)
+```
+
+- [ ] **Step 6: Vérifier que la synchro tient toujours**
 
 ```bash
 cd plugin && bun test scripts/tests/
 ```
-Attendu : tout passe, y compris le test de namespace qui trouve désormais les deux `agentType`.
+Attendu : 31 pass, 0 fail, le test de namespace trouvant désormais les deux `agentType`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add plugin/scripts/deep-research.js
+git add plugin/scripts/deep-research.js plugin/scripts/tests/deep-research-sync.test.mjs
 git commit -m "feat(research): table ENGINES, le pipeline porte deux moteurs de collecte
 
 Seule la phase d'angles consulte la table. Analyse de convergence et synthese
@@ -696,7 +776,7 @@ const targets = rankClaimsForRedTeam(state.findings, RT_TARGETS)
 const verdicts = (await parallel(targets.map(c => () =>
   parallel(Array.from({ length: VOTES_PER_CLAIM }, (_, v) => () =>
     agent(votePrompt(c, v), {
-      label: `vote${v}:${String(c.claim).slice(0, 40)}`, phase: 'Red-team',
+      label: `vote${v}:${c.id}`, phase: 'Red-team',
       schema: REDTEAM_SCHEMA, model: 'sonnet', effort: 'medium',
     })
   )).then(votes => {
@@ -713,14 +793,31 @@ Noter que `aggregateVotes` rend déjà `newConfidence` quand le verdict est `dow
 - [ ] **Step 3: Vérifier la syntaxe et la suite**
 
 ```bash
-cd plugin && bun -e "new Function(require('fs').readFileSync('scripts/deep-research.js','utf8'))" && echo "SYNTAXE OK" && bun test scripts/tests/
+cd plugin && bun -e 'const s=require("fs").readFileSync("scripts/deep-research.js","utf8"); try { new (Object.getPrototypeOf(async function(){}).constructor)(s.replace(/^export /gm,"")); console.log("SYNTAXE OK") } catch(e) { console.error("SYNTAXE KO:", e.message); process.exit(1) }' && bun test scripts/tests/
 ```
-Attendu : `SYNTAXE OK` puis tous les tests verts.
+Attendu : `SYNTAXE OK` puis 31 pass, 0 fail.
 
-- [ ] **Step 4: Commit**
+Ne pas remplacer cette commande par `bun build` (échoue toujours, `return` de niveau racine)
+ni par `bun -e "new Function(...)"` seul (sort en 0 même sur du code invalide). Les deux
+donnent un faux positif, mesuré. C'est la seule barrière syntaxique avant le premier run.
+
+- [ ] **Step 4: Corriger la documentation de la skill agy, devenue fausse**
+
+Deux affirmations de `plugin/skills/agy/SKILL.md` cessent d'être vraies à ce commit, et l'une
+d'elles contredit l'argument quota central du chantier :
+
+- ligne 10 : « Le Workflow spawne un subagent `erom-research:agy-run` par angle/claim »
+- ligne 114 : « chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run`
+  par angle/claim »
+
+Remplacer dans les deux cas « par angle/claim » par une formulation exacte : « par angle ; la
+vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne
+pas consommer trois appels de quota Google par claim ».
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/scripts/deep-research.js
+git add plugin/scripts/deep-research.js plugin/skills/agy/SKILL.md
 git commit -m "feat(research): vote adversarial a 3 voix en place de la red-team a une voix
 
 Trois verificateurs Claude natifs par claim, seuil de deux voix contre. La
@@ -760,7 +857,7 @@ fichier avant d'écrire, il est la référence de structure. Les six étapes att
 
 Différences non négociables avec la skill agy :
 
-- frontmatter : `name: claude`, `allowed-tools: Bash, Write, Read, Workflow, Agent`, description mentionnant les triggers `/erom-research:claude` et la sortie `docs/research/claude/`
+- frontmatter : `name: claude`, **`user-invocable: true`**, `allowed-tools: Bash, Write, Read, Workflow, Agent`, description mentionnant les triggers `/erom-research:claude` et la sortie `docs/research/claude/`. Les trois skills existantes portent toutes `user-invocable: true` ; sans ce champ, `/erom-research:claude` n'est pas exposé comme commande et la Task 9 ne peut pas se lancer
 - ajouter la phrase d'autorisation explicite du tool `Workflow`, comme la skill agy l'a en tête de fichier : sans elle, l'appel du Workflow est bloqué par la consigne générale
 - Étape 1, préflight : **pas** de vérification du binaire agy ni de circuit-breaker quota. Vérifier uniquement que `SCRIPT` et `RENDER` existent. Chemins absolus obligatoires, même contrainte que la skill agy.
 
@@ -784,29 +881,59 @@ Workflow({
 - Étape 5, rendu : `meta = { title, depth, rounds, converged, date, sourceTool: 'erom-research:claude', engine: 'claude' }`
 - Étape 6 : reprendre **verbatim** la section « Clôture de run, ordre imposé » de la skill agy. La première phrase rendue porte la couverture, jamais la complétion technique, et il reste interdit de déduire un « 0 erreur » du fait que le workflow s'est terminé.
 - Ajouter une ligne sur les claims non vérifiables : si `coverage.unverifiedClaims` est non nul, le dire dans la phrase de clôture.
+- Préciser dans l'Étape 1 que `.deep/<DATE>-<SLUG>/` ne portera que `_render.json` en mode claude : `claude-run` n'a que `WebSearch` et `WebFetch`, il ne peut rien écrire sur disque, contrairement à `agy-run` qui y dépose un markdown par angle.
+
+Passages à copier **verbatim** depuis `plugin/skills/agy/SKILL.md`, sans les reformuler (leur
+formulation actuelle vient de mesures de terrain, la paraphraser en perd la portée) :
+
+| Ligne source | Ce que c'est |
+|---|---|
+| 10 | la phrase autorisant explicitement l'appel du tool `Workflow`, sans laquelle l'appel est bloqué |
+| 17 et 30 | l'avertissement sur les chemins absolus, et pourquoi un `~` ou un relatif passé en argument de tool n'est pas expansé |
+| 97 à 111 | toute la section « Clôture de run, ordre imposé », avec la mesure des 29-30/07/2026 qui la justifie |
 
 - [ ] **Step 2: Rendre explicite le moteur de la skill agy**
 
 Dans `skills/agy/SKILL.md`, Étape 4, l'argument `engines: "agy"` est déjà présent. Vérifier qu'il l'est toujours après la Task 1 et qu'il n'a pas été perdu au renommage.
 
-- [ ] **Step 3: Mettre à jour le README du plugin**
+- [ ] **Step 3: Mettre à jour le README du plugin et le manifeste**
 
-Ajouter une ligne au tableau des moteurs :
+Le README annonce « trois moteurs » à deux endroits et ignore le nouveau dans quatre sections.
+Un README auto-contradictoire est un livrable raté : il faut les six points, pas seulement le
+tableau.
+
+1. `README.md:1` (titre) et `:3` : « trois moteurs » devient « quatre moteurs ».
+2. `README.md:9`, colonne Pilotage de la ligne `agy` : « red-team » devient « vote 3 voix ». Le
+   pipeline est commun aux deux moteurs, laisser « red-team » sur agy suggérerait le contraire.
+3. Ajouter la ligne du nouveau moteur au tableau :
 
 ```
 | `claude` | Subagents Claude natifs (WebSearch/WebFetch) | Claude : matrice de preuves, gate plan, rounds adaptatifs, vote 3 voix | rapport cité + couverture | quota Anthropic |
 ```
 
-Ajouter à la section Sorties : `docs/research/claude/<date>-<slug>.md + .deep/<date>-<slug>/`.
+4. `README.md:22-28`, bloc Usage : ajouter `/erom-research:claude <sujet> [--depth L|H] [--yes]`.
+5. Section Sorties : ajouter `docs/research/claude/<date>-<slug>.md`. Ne **pas** promettre
+   « artefacts bruts par angle » pour ce chemin : en mode claude, `claude-run` n'a que
+   `WebSearch` et `WebFetch`, donc aucun moyen d'écrire sur disque. Seul `_render.json` y
+   atterrit.
+6. `README.md:57-61`, tableau Pré-requis : ajouter une ligne claude, « aucun binaire, aucune
+   auth ». Et mettre à jour la section Composants avec `claude-run.md` et les fichiers renommés.
 
-Mettre à jour la section Composants avec `claude-run.md` et les fichiers renommés.
+Enfin, dans `plugin/.claude-plugin/plugin.json`, la `description` dit encore « Trois moteurs de
+deep research complémentaires » et les `keywords` ne portent ni `claude` ni `vote`. Corriger les
+deux dans ce commit : la skill `plugin-release` de la Task 9 bumpe la version, le README et la
+marketplace, pas la description ni les keywords du manifeste.
 
 - [ ] **Step 4: Vérifier la découverte de la skill**
 
 ```bash
-cd /Users/recarnot/dev/erom-agence-deep-research && head -6 plugin/skills/claude/SKILL.md && grep -c "engines" plugin/skills/claude/SKILL.md
+cd /Users/recarnot/dev/erom-agence-deep-research
+grep -E "^(name|user-invocable|allowed-tools):" plugin/skills/claude/SKILL.md
+grep -c "engines" plugin/skills/claude/SKILL.md
 ```
-Attendu : frontmatter avec `name: claude`, et au moins une occurrence de `engines`.
+Attendu : les trois champs présents, `allowed-tools` incluant `Workflow`, et au moins une
+occurrence de `engines`. Un `head` ne suffit pas : il prouve que le fichier a été écrit, pas
+que les champs qui conditionnent l'invocabilité sont là.
 
 - [ ] **Step 5: Commit**
 
@@ -835,7 +962,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 ```bash
 cd plugin && bun test scripts/tests/ && python3 scripts/tests/test_recover_transcript.py
 ```
-Attendu : 30 pass bun et 3 pass python. Baseline avant chantier : 18 bun, 3 python.
+Attendu : **31 pass bun** et 3 pass python. Baseline avant chantier : 18 bun, 3 python.
+
+Décompte attendu : 18 de baseline, plus 1 (sourceTool, T1), plus 8 (aggregateVotes, T2), plus
+3 (unverified, T3), plus 1 (aggregateVotes entrant dans SHARED, T4). La T6 n'ajoute pas de
+test, elle ajoute une assertion dans un test existant. Un total de 30 signalerait qu'un test a
+disparu en route.
 
 - [ ] **Step 2: Recharger le plugin**
 

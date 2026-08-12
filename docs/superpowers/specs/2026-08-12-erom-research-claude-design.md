@@ -81,7 +81,7 @@ En tête de `deep-research.js`, consultée uniquement par la phase d'angles :
 const ENGINES = {
   agy: {
     agentType: 'erom-research:agy-run',
-    model: 'sonnet', effort: 'low',
+    // aucun pin : agy-run.md declare deja model: haiku
     anglePrompt: (f, round, i) => `MODE: deep-angle\nROUND: ${round}\n...`,
   },
   claude: {
