@@ -118,6 +118,27 @@ function applyRedTeam(findings, verdicts) {
   }
   return result
 }
+
+function aggregateVotes(verdicts, opts) {
+  const { votesCast = 3, threshold = 2 } = opts || {}
+  const valid = (verdicts || []).filter(Boolean)
+  const erroredVotes = Math.max(0, votesCast - valid.length)
+  const base = { validVotes: valid.length, erroredVotes }
+  if (valid.length < threshold) return { ...base, verdict: 'unverified' }
+  const kills = valid.filter(v => v.verdict === 'kill')
+  const downs = valid.filter(v => v.verdict === 'downgrade')
+  const against = [...kills, ...downs]
+  if (against.length < threshold) return { ...base, verdict: 'hold' }
+  const src = against.find(v => v.refutingSource) || against[0]
+  const cited = { refutingSource: src.refutingSource || null, refutingEvidence: src.refutingEvidence || '' }
+  if (kills.length >= threshold) return { ...base, ...cited, verdict: 'kill' }
+  const RANK = { low: 0, medium: 1, high: 2 }
+  const lowest = against
+    .map(v => v.newConfidence)
+    .filter(c => c && Object.prototype.hasOwnProperty.call(RANK, c))
+    .sort((a, b) => RANK[a] - RANK[b])[0] || 'low'
+  return { ...base, ...cited, verdict: 'downgrade', newConfidence: lowest }
+}
 // ─── END INLINED ───
 
 const ANGLE_SCHEMA = { type:'object', required:['angle','status','findings','threads'], properties:{

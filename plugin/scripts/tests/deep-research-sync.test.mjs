@@ -25,7 +25,7 @@ function extractFn(src, name) {
 // Helpers de calcul partagés (renderReportMarkdown n'est PAS inliné dans le workflow).
 const SHARED = ['normURL', 'domainOf', 'distinctDomains', 'corroborationOf',
   'initialConfidence', 'ingestRound', 'isConverged', 'computeCoverage',
-  'rankClaimsForRedTeam', 'applyRedTeam']
+  'rankClaimsForRedTeam', 'applyRedTeam', 'aggregateVotes']
 
 for (const name of SHARED) {
   test(`inline ${name} matches lib`, () => {
@@ -37,9 +37,12 @@ for (const name of SHARED) {
   })
 }
 
-test('deep-research.js targets the plugin-namespaced forwarder, not a user-scoped agent', () => {
+test('le workflow ne cible que des agents du namespace erom-research:', () => {
   expect(wf).not.toContain('antigravity:agy-rescue')
   expect(wf).toMatch(/agentType:\s*'erom-research:agy-run'/)
-  // le plugin doit être autonome : aucun agent hors namespace erom-research:
   expect(wf).not.toMatch(/agentType:\s*'agy-run'/)
+  // Tout agentType litteral du workflow doit porter le prefixe du plugin.
+  const declared = [...wf.matchAll(/agentType:\s*'([^']+)'/g)].map(m => m[1])
+  expect(declared.length).toBeGreaterThan(0)
+  for (const a of declared) expect(a.startsWith('erom-research:')).toBe(true)
 })
