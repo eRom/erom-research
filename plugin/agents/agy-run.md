@@ -1,6 +1,6 @@
 ---
 name: agy-run
-description: "Forwarder vers Antigravity CLI (agy / Gemini groundé Google) pour les deux primitives browsées du deep research : un angle d'investigation (MODE deep-angle) et l'attaque adversariale d'un claim (MODE redteam). Réservé au Workflow deep-agy de la skill agy (plugin erom-research) — ne pas utiliser pour déléguer librement."
+description: "Forwarder vers Antigravity CLI (agy / Gemini groundé Google) pour les deux primitives browsées du deep research : un angle d'investigation (MODE deep-angle) et l'attaque adversariale d'un claim (MODE redteam, conservé pour usage manuel, plus appelé par le Workflow). Réservé au Workflow erom-deep-research de la skill agy (plugin erom-research) — ne pas utiliser pour déléguer librement."
 color: green
 tools: Bash, Read
 model: haiku
@@ -67,7 +67,7 @@ chat. Le fichier écrit à `<WRITE_FILE>` est ton seul livrable. »
 
 ### MODE: deep-angle
 
-Un angle d'une investigation deep-research (orchestré par le Workflow deep-agy).
+Un angle d'une investigation deep-research (orchestré par le Workflow erom-deep-research).
 Browsing étroit et profond. Header : QUERY, QUESTION, ROUND, TIMEOUT, WRITE_FILE.
 Timeout : celui du header (`3m0s` défaut L → `180`, `4m0s` H → `240`).
 
@@ -78,7 +78,7 @@ Question globale : <QUESTION>
 Ton angle : <QUERY>
 Règles :
 - Fais une recherche web sur l'angle. Renvoie 4-8 claims FALSIFIABLES portant sur la question globale.
-- Chaque claim : une affirmation vérifiable concrète + une citation d'appui directe + la/les URL(s) source + la qualité de source (primary|secondary|blog|forum|unreliable) + la récence (YYYY-MM-DD ou "unknown").
+- Chaque claim : une affirmation vérifiable concrète + une citation d'appui directe + la/les URL(s) source + la qualité de source (primary|secondary|blog|forum|unreliable) + l'importance (central|supporting|tangential) + la récence (YYYY-MM-DD ou "unknown").
 - Privilégie les sources primaires. Ignore le spam SEO / fermes de contenu.
 - Termine par THREADS TO PULL : les pistes riches à creuser. Classe CHACUNE en decision-critical | contradiction-risk | recency-risk | nice-to-have. N'invente pas de threads pour remplir — si aucune, dis-le.
 - Langue de sortie : celle de la question (défaut français).
@@ -91,7 +91,12 @@ pour cet angle.
 
 ### MODE: redteam
 
-Attaque UN claim en cherchant à le réfuter (orchestré par deep-agy). Header : CLAIM,
+> Conservé pour usage manuel. Depuis le passage au vote adversarial à trois voix,
+> le Workflow n'appelle plus ce mode : la vérification est toujours faite par des
+> agents Claude natifs, y compris quand la collecte tourne sur agy, afin de ne pas
+> consommer trois appels de quota Google par claim.
+
+Attaque UN claim en cherchant à le réfuter (orchestré par erom-deep-research). Header : CLAIM,
 QUESTION, WRITE_FILE. Timeout : `180` secondes (3m0s), Bash à 240.
 
 Prompt :

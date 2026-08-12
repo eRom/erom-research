@@ -49,4 +49,4 @@ $ARGUMENTS
 - `usage` dans status.json = conso réelle du run (tokens, appels modèle) ; `usage_is_incomplete: true` est fréquent → lire ces tokens comme un plancher (sous-agents sous-comptés). Vue compte : `/usage` dans le TUI Grok.
 - La conso tape le pool hebdomadaire partagé de l'abonnement X (mesuré le 2026-07-30) — c'est le but : préserver les quotas agy/Google.
 - Multi-runs en parallèle OK (run dirs isolés). Timeout worker 40 min par défaut (`--timeout-sec`).
-- Routage des trois moteurs : `agy` = justesse pilotée (matrice, plan gate, red-team) ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Routage des quatre moteurs : `agy` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.

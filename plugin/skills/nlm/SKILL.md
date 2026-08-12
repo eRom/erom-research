@@ -1,6 +1,6 @@
 ---
 name: nlm
-description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. 3e moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans docs/research/nlm/."
+description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans docs/research/nlm/."
 user-invocable: true
 allowed-tools: Bash, Read, Agent
 ---
@@ -45,4 +45,4 @@ Notebooks côté Google + rapports locaux.
 - Jamais d'auto-fire depuis un brainstorming : proposer `/erom-research:nlm`, Romain décide.
 - **Suivi.** Approfondir un référentiel existant se fait sur son notebook_id (frontmatter du rapport), pas par un re-run : `nlm notebook query <notebook_id> "<question>"`. La skill `/notebook-chat` enveloppe cette commande mais n'est PAS fournie par ce plugin (skill personnelle `~/.claude/skills/notebook-chat/`) : sans elle, le CLI `nlm` fait le travail directement.
 - Quotas Google Pro : 500 notebooks × 300 sources, 500 chats/jour, 20 audios/jour. Un run = 1 notebook + 1 chat de synthèse : aucune pression.
-- Routage des trois moteurs : `agy` = justesse pilotée (matrice, plan gate, red-team) ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Routage des quatre moteurs : `agy` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.

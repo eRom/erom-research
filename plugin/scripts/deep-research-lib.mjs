@@ -1,6 +1,6 @@
 // Pure, node-testable helpers for the agy skill (plugin erom-research).
 // SINGLE SOURCE OF TRUTH — these functions are inlined verbatim into
-// deep-agy.js (guarded by deep-agy-sync.test.mjs).
+// deep-research.js (guarded by deep-research-sync.test.mjs).
 // Keep dependency-free and side-effect-free.
 
 export function normURL(u) {
@@ -54,7 +54,8 @@ export function ingestRound(roundResults, state, round) {
   return novel
 }
 
-export function isConverged({ coverage, matrix, lastRoundChangedMaterially, openCriticalThreads }) {
+export function isConverged(opts) {
+  const { coverage, matrix, lastRoundChangedMaterially, openCriticalThreads } = opts || {}
   const critical = (matrix || []).filter(m => m.recommendationChanging)
   const allAnswered = critical.every(m => {
     const c = (coverage || []).find(x => x.matrixId === m.id)
@@ -63,7 +64,7 @@ export function isConverged({ coverage, matrix, lastRoundChangedMaterially, open
   return allAnswered && !lastRoundChangedMaterially && (openCriticalThreads || 0) === 0
 }
 
-export function computeCoverage(state, angles) {
+export function computeCoverage(state, angles, verdicts) {
   const allSources = state.findings.flatMap(f => f.sources || [])
   const domains = new Set(allSources.map(domainOf))
   const penalties = []
@@ -78,6 +79,8 @@ export function computeCoverage(state, angles) {
     failedAngleLabels: [...state.failedAngles],
     sourceCount: new Set(allSources.map(normURL)).size,
     distinctDomains: domains.size,
+    unverifiedClaims: state.findings.filter(f => f.redteam && f.redteam.verdict === 'unverified').length,
+    killedClaims: (verdicts || []).filter(v => v && v.verdict === 'kill').length,
     unresolvedCriticalGaps: [],
     confidencePenalties: penalties,
   }
@@ -105,8 +108,10 @@ export function applyRedTeam(findings, verdicts) {
     const newFinding = { ...f }
     // Add redteam field if verdict exists
     if (v) {
-      newFinding.redteam = { verdict: v.verdict, refutingSource: v.refutingSource || null, evidence: v.refutingEvidence || '' }
-      // Downgrade confidence if downgrade verdict
+      newFinding.redteam = {
+        verdict: v.verdict, refutingSource: v.refutingSource || null, evidence: v.refutingEvidence || '',
+        ...(v.validVotes !== undefined ? { validVotes: v.validVotes, erroredVotes: v.erroredVotes } : {}),
+      }
       if (v.verdict === 'downgrade') {
         newFinding.confidence = v.newConfidence || 'low'
       }
@@ -116,10 +121,33 @@ export function applyRedTeam(findings, verdicts) {
   return result
 }
 
+export function aggregateVotes(verdicts, opts) {
+  const { votesCast = 3, threshold = 2 } = opts || {}
+  const valid = (verdicts || []).filter(Boolean)
+  const erroredVotes = Math.max(0, votesCast - valid.length)
+  const base = { validVotes: valid.length, erroredVotes }
+  if (valid.length < threshold) return { ...base, verdict: 'unverified' }
+  const kills = valid.filter(v => v.verdict === 'kill')
+  const downs = valid.filter(v => v.verdict === 'downgrade')
+  const against = [...kills, ...downs]
+  if (against.length < threshold) return { ...base, verdict: 'hold' }
+  const src = against.find(v => v.refutingSource) || against[0]
+  const cited = { refutingSource: src.refutingSource || null, refutingEvidence: src.refutingEvidence || '' }
+  if (kills.length >= threshold) return { ...base, ...cited, verdict: 'kill' }
+  const RANK = { low: 0, medium: 1, high: 2 }
+  const lowest = against
+    .map(v => v.newConfidence)
+    .filter(c => c && Object.prototype.hasOwnProperty.call(RANK, c))
+    .sort((a, b) => RANK[a] - RANK[b])[0] || 'low'
+  return { ...base, ...cited, verdict: 'downgrade', newConfidence: lowest }
+}
+
 export function renderReportMarkdown(report, meta) {
   const L = []
   L.push([
-    '---', `title: "${meta.title}"`, 'type: research', 'source_tool: erom-research:agy',
+    '---', `title: "${meta.title}"`, 'type: research',
+    `source_tool: ${meta.sourceTool || 'erom-research:agy'}`,
+    ...(meta.engine ? [`engine: ${meta.engine}`] : []),
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,
     `created: ${meta.date}`, 'sensitivity: internal', '---', '',
   ].join('\n'))
@@ -152,6 +180,8 @@ export function renderReportMarkdown(report, meta) {
   L.push('## Couverture et confiance')
   L.push(`- Angles complétés : ${c.anglesCompleted ?? '?'} · échoués : ${c.anglesFailed ?? 0}${(c.failedAngleLabels && c.failedAngleLabels.length) ? ` (${c.failedAngleLabels.join(', ')})` : ''}`)
   L.push(`- Sources : ${c.sourceCount ?? '?'} · domaines distincts : ${c.distinctDomains ?? '?'}`)
+  if (c.unverifiedClaims) L.push(`- Claims non vérifiables : ${c.unverifiedClaims} (vérificateurs en échec, ni confirmés ni réfutés)`)
+  if (c.killedClaims) L.push(`- Claims écartées par le vote : ${c.killedClaims} (au moins 2 voix sur 3 en kill)`)
   if (c.unresolvedCriticalGaps && c.unresolvedCriticalGaps.length) { L.push('- Lacunes critiques non résolues :'); for (const g of c.unresolvedCriticalGaps) L.push(`  - ${g}`) }
   if (c.confidencePenalties && c.confidencePenalties.length) { L.push('- Pénalités de confiance :'); for (const p of c.confidencePenalties) L.push(`  - ${p}`) }
   L.push('')

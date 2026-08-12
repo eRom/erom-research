@@ -1,13 +1,13 @@
 ---
 name: agy
-description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, passe red-team, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans docs/research/agy/."
+description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans docs/research/agy/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
 
-Deep research multi-rounds. Ne remplace pas une recherche web ordinaire (`search-builtin` pour un fait, `search-perplexity` pour un tour d'horizon) : ici on boucle via le Workflow `deep-agy` — agy browse plusieurs angles par round, Claude juge couverture et convergence entre rounds, une passe red-team attaque les claims centraux/mono-source, puis synthèse.
+Deep research multi-rounds. Ne remplace pas une recherche web ordinaire (`search-builtin` pour un fait, `search-perplexity` pour un tour d'horizon) : ici on boucle via le Workflow `erom-deep-research` — agy browse plusieurs angles par round, Claude juge couverture et convergence entre rounds, un vote adversarial à trois voix attaque les claims centraux/mono-source, puis synthèse.
 
-> Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `erom-research:agy-run` par angle/claim.
+> Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `erom-research:agy-run` par angle ; la vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne pas consommer trois appels de quota Google par claim.
 
 Requête brute :
 $ARGUMENTS
@@ -16,14 +16,14 @@ $ARGUMENTS
 
 Ces deux chemins sont déjà absolus dans ce texte : recopie-les littéralement, ne les reconstruis pas.
 
-- `SCRIPT` = `${CLAUDE_PLUGIN_ROOT}/scripts/deep-agy.js`
+- `SCRIPT` = `${CLAUDE_PLUGIN_ROOT}/scripts/deep-research.js`
 - `RENDER` = `${CLAUDE_PLUGIN_ROOT}/scripts/render-report.mjs`
 
 Si `${CLAUDE_PLUGIN_ROOT}` te parvient non expansé, résous-le : deux niveaux au-dessus du « Base directory for this skill » injecté ci-dessus.
 
 ## Étape 1 — Parse + préflight (UN appel Bash)
 
-- `--depth L|H` (défaut `L`). `H` = jusqu'à 4 rounds (vs 2), red-team 10 claims (vs 5), timeouts par angle plus longs.
+- `--depth L|H` (défaut `L`). `H` = jusqu'à 4 rounds (vs 2), vote à trois voix sur 10 claims (vs 5), timeouts par angle plus longs.
 - `--yes` saute le plan gate (Étape 3).
 - Retire ces flags de `$ARGUMENTS` ; le reste trimé = `<sujet>`. Vide → demande « Quoi deep-rechercher ? » et stop.
 - `SLUG` = sujet lowercased, non-alphanumérique → `-`, répétitions réduites, 60 chars. `DATE` = aujourd'hui ISO.
@@ -74,7 +74,7 @@ Montre la matrice + les angles (table compacte) et attends un go explicite ou de
 Workflow({
   scriptPath: "<SCRIPT de l'Étape 0 — chemin absolu, jamais ~>",
   args: { question: <sujet>, matrix: <matrice>, angles: <angles>, depth: "L"|"H",
-          engines: "agy", deepDir: "<DEEP_DIR de l'Étape 1 — absolu>", date: <DATE>, title: <sujet> }
+          engines: "agy", deepDir: "<DEEP_DIR de l'Étape 1 — absolu>" }
 })
 ```
 Attends le résultat `{ report, coverage, rounds, converged }`. `report` est déjà au schéma et `report.coverage` est pré-calculé (déterministe) — ne pas recomputer.
@@ -87,7 +87,7 @@ N'écris pas le markdown à la main. Écris `{ report, meta }` dans `<DEEP_DIR>/
 ```bash
 node "<RENDER de l'Étape 0>" "<DEEP_DIR>/_render.json" > "<WRITE_FILE>"
 ```
-où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE> }`.
+où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:agy', engine:'agy' }`.
 (`render-report.mjs` importe la lib en spécifieur relatif — ne jamais inliner le chemin de la lib dans un `node -e`.)
 
 ## Étape 6 — Retour
@@ -110,7 +110,11 @@ la couverture. Si des angles ont échoué, la phrase de clôture le dit, avec la
 > réelle 17/35, 20/31, 9/27 et 15/29. Sur écologie-énergie, la couverture réelle n'a jamais été dite en
 > chat — elle n'existe que dans le rapport et le message de commit.
 
+Même règle pour les claims non tranchés : si `coverage.unverifiedClaims` est non nul, la phrase de
+clôture le dit aussi, distinctement des claims coulés par le vote. Ce sont des claims que les trois voix
+n'ont ni confirmés ni réfutés (vérificateur en échec), pas des claims rejetés.
+
 ## Notes
-- Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle/claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
+- Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle ; la vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne pas consommer trois appels de quota Google par claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
 - Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:agy` aux décisions où la justesse prime.
-- Routage des trois moteurs : `agy` = justesse pilotée (matrice, plan gate, red-team) ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Routage des quatre moteurs : `agy` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
