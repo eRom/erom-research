@@ -78,6 +78,7 @@ export function computeCoverage(state, angles) {
     failedAngleLabels: [...state.failedAngles],
     sourceCount: new Set(allSources.map(normURL)).size,
     distinctDomains: domains.size,
+    unverifiedClaims: state.findings.filter(f => f.redteam && f.redteam.verdict === 'unverified').length,
     unresolvedCriticalGaps: [],
     confidencePenalties: penalties,
   }
@@ -105,8 +106,10 @@ export function applyRedTeam(findings, verdicts) {
     const newFinding = { ...f }
     // Add redteam field if verdict exists
     if (v) {
-      newFinding.redteam = { verdict: v.verdict, refutingSource: v.refutingSource || null, evidence: v.refutingEvidence || '' }
-      // Downgrade confidence if downgrade verdict
+      newFinding.redteam = {
+        verdict: v.verdict, refutingSource: v.refutingSource || null, evidence: v.refutingEvidence || '',
+        ...(v.validVotes !== undefined ? { validVotes: v.validVotes, erroredVotes: v.erroredVotes } : {}),
+      }
       if (v.verdict === 'downgrade') {
         newFinding.confidence = v.newConfidence || 'low'
       }
@@ -175,6 +178,7 @@ export function renderReportMarkdown(report, meta) {
   L.push('## Couverture et confiance')
   L.push(`- Angles complétés : ${c.anglesCompleted ?? '?'} · échoués : ${c.anglesFailed ?? 0}${(c.failedAngleLabels && c.failedAngleLabels.length) ? ` (${c.failedAngleLabels.join(', ')})` : ''}`)
   L.push(`- Sources : ${c.sourceCount ?? '?'} · domaines distincts : ${c.distinctDomains ?? '?'}`)
+  if (c.unverifiedClaims) L.push(`- Claims non vérifiables : ${c.unverifiedClaims} (vérificateurs en échec, ni confirmés ni réfutés)`)
   if (c.unresolvedCriticalGaps && c.unresolvedCriticalGaps.length) { L.push('- Lacunes critiques non résolues :'); for (const g of c.unresolvedCriticalGaps) L.push(`  - ${g}`) }
   if (c.confidencePenalties && c.confidencePenalties.length) { L.push('- Pénalités de confiance :'); for (const p of c.confidencePenalties) L.push(`  - ${p}`) }
   L.push('')

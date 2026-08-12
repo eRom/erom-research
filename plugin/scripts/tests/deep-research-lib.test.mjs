@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { normURL, corroborationOf, ingestRound, rankClaimsForRedTeam, applyRedTeam, renderReportMarkdown, aggregateVotes } from '../deep-research-lib.mjs'
+import { normURL, corroborationOf, ingestRound, rankClaimsForRedTeam, applyRedTeam, computeCoverage, renderReportMarkdown, aggregateVotes } from '../deep-research-lib.mjs'
 
 test('normURL strips www and trailing slash, lowercases', () => {
   expect(normURL('https://www.Example.com/Path/')).toBe('example.com/path')
@@ -123,4 +123,30 @@ test('aggregateVotes: remonte la première source réfutante disponible', () => 
   ])
   expect(r.refutingSource).toBe('https://x.com')
   expect(r.refutingEvidence).toBe('E')
+})
+
+test('applyRedTeam conserve et marque une claim unverified', () => {
+  const findings = [{ claim: 'u', confidence: 'high' }]
+  const r = applyRedTeam(findings, [{ claim: 'u', verdict: 'unverified', validVotes: 1, erroredVotes: 2 }])
+  expect(r.map(f => f.claim)).toEqual(['u'])
+  expect(r[0].redteam.verdict).toBe('unverified')
+  expect(r[0].redteam.erroredVotes).toBe(2)
+  expect(r[0].confidence).toBe('high')
+})
+
+test('computeCoverage compte les claims non vérifiables', () => {
+  const state = { findings: [
+    { sources: ['https://a.com'], importance: 'supporting', corroboration: 'independent', redteam: { verdict: 'unverified' } },
+    { sources: ['https://b.com'], importance: 'supporting', corroboration: 'independent', redteam: { verdict: 'hold' } },
+    { sources: ['https://c.com'], importance: 'supporting', corroboration: 'independent', redteam: null },
+  ], failedAngles: [] }
+  expect(computeCoverage(state, [{ label: 'x' }]).unverifiedClaims).toBe(1)
+})
+
+test('renderReportMarkdown signale les claims non vérifiables', () => {
+  const md = renderReportMarkdown(
+    { tldr: [], findings: [], coverage: { anglesCompleted: 1, anglesFailed: 0, unverifiedClaims: 2 },
+      conclusion: { recommendation: 'R', overallConfidence: 'low' }, references: [] },
+    { title: 'T', depth: 'L', rounds: 1, converged: false, date: '2026-08-12' })
+  expect(md).toContain('non vérifiables : 2')
 })

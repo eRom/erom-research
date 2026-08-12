@@ -78,6 +78,7 @@ function computeCoverage(state, angles) {
     failedAngleLabels: [...state.failedAngles],
     sourceCount: new Set(allSources.map(normURL)).size,
     distinctDomains: domains.size,
+    unverifiedClaims: state.findings.filter(f => f.redteam && f.redteam.verdict === 'unverified').length,
     unresolvedCriticalGaps: [],
     confidencePenalties: penalties,
   }
@@ -105,8 +106,10 @@ function applyRedTeam(findings, verdicts) {
     const newFinding = { ...f }
     // Add redteam field if verdict exists
     if (v) {
-      newFinding.redteam = { verdict: v.verdict, refutingSource: v.refutingSource || null, evidence: v.refutingEvidence || '' }
-      // Downgrade confidence if downgrade verdict
+      newFinding.redteam = {
+        verdict: v.verdict, refutingSource: v.refutingSource || null, evidence: v.refutingEvidence || '',
+        ...(v.validVotes !== undefined ? { validVotes: v.validVotes, erroredVotes: v.erroredVotes } : {}),
+      }
       if (v.verdict === 'downgrade') {
         newFinding.confidence = v.newConfidence || 'low'
       }
