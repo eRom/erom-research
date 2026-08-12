@@ -1003,6 +1003,147 @@ Si les deux runs sont concluants, invoquer la skill `plugin-release` pour publie
 
 ---
 
+### Task 10: Deux dettes préexistantes révélées par le chantier
+
+**S'exécute APRÈS la Task 8 et AVANT la Task 9.** Ajoutée en cours de chantier, après que
+les reviews des Tasks 4 et 5 ont mis au jour deux défauts préexistants, tous deux confirmés
+empiriquement.
+
+**Files:**
+- Modify: `plugin/scripts/tests/deep-research-sync.test.mjs` (méta-test)
+- Modify: `plugin/scripts/deep-research-lib.mjs` (`isConverged`)
+- Modify: `plugin/scripts/deep-research.js` (resynchronisation de l'inline)
+- Modify: `plugin/agents/agy-run.md` (prompt `MODE: deep-angle`)
+
+**Interfaces:**
+- Consumes: `SHARED` et `extractFn` du test de synchro, `isConverged` de la lib
+- Produces: `isConverged(opts)` au lieu de `isConverged({ ... })`, comportement inchangé
+
+- [ ] **Step 1: Écrire le méta-test qui interdit un garde-fou aveugle**
+
+Ajouter à la fin de `deep-research-sync.test.mjs` :
+
+```js
+test('le garde-fou compare de vrais corps, pas des signatures', () => {
+  // extractFn localise le corps par la premiere accolade rencontree apres le nom. Une
+  // fonction qui destructure dans sa liste de parametres piege cette mecanique :
+  // l'extraction s'arrete sur l'accolade fermante du motif, et le test compare alors deux
+  // signatures identiques au lieu de deux corps. Le garde-fou serait vert en ne comparant
+  // rien. Ce meta-test garantit qu'aucune fonction surveillee ne retombe dans ce piege.
+  const libSrc = lib.replace(/\bexport function /g, 'function ')
+  for (const name of SHARED) {
+    const extrait = extractFn(libSrc, name)
+    expect(extrait).not.toBeNull()
+    expect(extrait).toMatch(/\)\s*\{/)
+  }
+})
+```
+
+Le critère a été exécuté sur les 11 fonctions surveillées avant rédaction : il désigne
+exactement `isConverged` et aucune autre.
+
+- [ ] **Step 2: Lancer et vérifier l'échec**
+
+```bash
+cd plugin && bun test scripts/tests/deep-research-sync.test.mjs
+```
+Attendu : FAIL sur le nouveau test, l'extrait de `isConverged` valant
+`function isConverged({ coverage, matrix, lastRoundChangedMaterially, openCriticalThreads }`
+sans le `) {` du corps.
+
+- [ ] **Step 3: Corriger la signature dans la lib**
+
+Dans `deep-research-lib.mjs`, remplacer les deux premières lignes de `isConverged` par :
+
+```js
+export function isConverged(opts) {
+  const { coverage, matrix, lastRoundChangedMaterially, openCriticalThreads } = opts || {}
+```
+
+Le reste du corps est inchangé. Aucun appelant n'est à modifier : le seul site d'appel, dans
+`deep-research.js`, passe déjà un objet unique, et aucun test existant ne couvre cette
+fonction.
+
+- [ ] **Step 4: Resynchroniser l'inline dans le même commit**
+
+`isConverged` est sous garde-fou octet à octet. Copier-coller le corps corrigé depuis la lib
+vers le bloc INLINED de `deep-research.js`, en retirant le mot-clé `export`. Ne pas retaper.
+
+- [ ] **Step 5: Vérifier que le garde-fou mord enfin**
+
+```bash
+cd plugin && bun test scripts/tests/
+```
+Attendu : 32 pass, 0 fail (31 plus le méta-test).
+
+Puis prouver que la protection est réelle, par mutation temporaire : remplacer le corps de
+`isConverged` dans `deep-research.js` **seulement** par `return true`, relancer
+`bun test scripts/tests/deep-research-sync.test.mjs`, constater que
+`inline isConverged matches lib` échoue désormais, puis **restaurer le fichier** et
+vérifier que `git status --short` est vide. Consigner les deux sorties dans le rapport.
+
+- [ ] **Step 6: Réclamer le champ importance dans le prompt agy**
+
+Dans `plugin/agents/agy-run.md`, section `### MODE: deep-angle`, la ligne du prompt qui
+énumère les attributs de chaque claim demande aujourd'hui : affirmation vérifiable, citation
+d'appui, URL sources, qualité de source, récence. Elle omet `importance`, que `ANGLE_SCHEMA`
+exige et que `claude-run.md` réclame.
+
+Conséquence mesurable : `ingestRound` retombe sur le défaut `supporting`, et comme
+`rankClaimsForRedTeam` retient les claims `central` **ou** mono-source, les claims centraux
+corroborés du moteur agy échappent à toute vérification.
+
+Ajouter `importance` à cette énumération, avec ses trois valeurs possibles
+`central|supporting|tangential`, en suivant la formulation déjà employée pour la qualité de
+source dans la même phrase.
+
+- [ ] **Step 7: Rattraper la cohérence documentaire créée par le chantier**
+
+Le plugin passe de trois à quatre moteurs, et six passages annoncent encore l'ancien état.
+Ils ont été relevés sur l'arbre après la Task 8, qui ne couvrait que le README et le
+manifeste. Localiser par texte, jamais par numéro de ligne.
+
+1. `plugin/skills/agy/SKILL.md`, `plugin/skills/grok/SKILL.md` et
+   `plugin/skills/nlm/SKILL.md` portent chacun une ligne « Routage des trois moteurs »
+   identique, qui énumère agy, grok et nlm. Y ajouter le quatrième et corriger le décompte,
+   en gardant la formulation compacte existante. Pour agy, la mention « red-team » de cette
+   ligne devient « vote 3 voix », puisque la vérification a changé de nature pour les deux
+   moteurs pilotés par le pipeline.
+2. `plugin/skills/nlm/SKILL.md`, champ `description` du frontmatter : « 3e moteur deep »
+   devient « moteur deep » ou son rang exact, au choix, mais ne doit plus contredire le
+   nombre réel de moteurs.
+3. `plugin/README.md` : deux mentions de « red-team » subsistent en prose, l'une décrivant
+   la passe de vérification du moteur agy, l'autre le contenu de la lib partagée. La
+   première devient « vote 3 voix adversarial » ; la seconde décrit le contenu réel de la
+   lib, dont la fonction d'agrégation des votes fait désormais partie.
+
+Ne pas toucher aux skills `grok` et `nlm` au-delà de ces lignes : leurs moteurs ne sont pas
+concernés par ce chantier.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add plugin/scripts/deep-research-lib.mjs plugin/scripts/deep-research.js \
+        plugin/scripts/tests/deep-research-sync.test.mjs plugin/agents/agy-run.md \
+        plugin/skills/agy/SKILL.md plugin/skills/grok/SKILL.md plugin/skills/nlm/SKILL.md \
+        plugin/README.md
+git commit -m "fix(research): isConverged echappait au garde-fou, agy n'envoyait pas importance
+
+isConverged destructurait dans sa liste de parametres, donc extractFn s'arretait sur
+l'accolade du motif et le test de synchro comparait deux signatures au lieu de deux
+corps. Verifie : corps remplace par return true cote workflow, le test restait vert.
+C'est la fonction qui decide de l'arret des rounds du pipeline.
+
+Un meta-test interdit desormais a toute fonction surveillee de retomber dans ce piege.
+
+Le prompt deep-angle d'agy ne reclamait pas importance, donc ses findings retombaient
+tous sur supporting et ses claims centraux corrobores echappaient a la verification.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+---
+
 ## Ce que ce plan ne fait pas
 
 - `engines: 'both'` répartissant les angles entre les deux moteurs
