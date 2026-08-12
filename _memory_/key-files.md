@@ -1,6 +1,6 @@
 # Fichiers clés
 
-_Mis à jour : 2026-07-30_
+_Mis à jour : 2026-08-12_
 
 ## Manifeste
 
@@ -13,6 +13,7 @@ _Mis à jour : 2026-07-30_
 | Fichier | Rôle |
 |---|---|
 | `skills/agy/SKILL.md` | Pilote le Workflow multi-rounds : Étape 0 chemins plugin, préflight, matrice + angles, gate plan, Workflow, rendu. |
+| `skills/claude/SKILL.md` | Même pipeline que agy, moteur de collecte natif (`claude-run`, WebSearch/WebFetch) : aucun préflight de binaire, aucun circuit-breaker quota. |
 | `skills/grok/SKILL.md` | Enveloppe le CLI `grok-deep` en 3 modes : start (background), status, list. |
 | `skills/nlm/SKILL.md` | Préflight auth `nlm`, spawn du subagent `erom-research:notebook-creator`, restitution à la notification. |
 
@@ -20,7 +21,8 @@ _Mis à jour : 2026-07-30_
 
 | Fichier | Rôle |
 |---|---|
-| `agents/agy-run.md` | Forwarder mince vers agy via le scratch runner. Deux modes : `deep-angle`, `redteam`. Haiku. |
+| `agents/agy-run.md` | Forwarder mince vers agy via le scratch runner. Deux modes : `deep-angle`, `redteam` (redteam conservé pour usage manuel, plus appelé par le Workflow). Haiku. |
+| `agents/claude-run.md` | Chercheur natif d'un angle d'investigation : WebSearch/WebFetch, claims falsifiables sourcés. Sonnet. |
 | `agents/notebook-creator.md` | Pilote `nlm` de bout en bout : create → research deep → import → auto-label → 1 chat de synthèse → rapport. Sonnet, `background: true`, `memory: user`. |
 
 ## Scripts

@@ -42,18 +42,18 @@ test('le workflow ne cible que des agents du namespace erom-research:', () => {
   expect(wf).toMatch(/agentType:\s*'erom-research:agy-run'/)
   expect(wf).toMatch(/agentType:\s*'erom-research:claude-run'/)
   expect(wf).not.toMatch(/agentType:\s*'agy-run'/)
-  // Tout agentType litteral du workflow doit porter le prefixe du plugin.
+  // Tout agentType littéral du workflow doit porter le préfixe du plugin.
   const declared = [...wf.matchAll(/agentType:\s*'([^']+)'/g)].map(m => m[1])
   expect(declared.length).toBeGreaterThan(0)
   for (const a of declared) expect(a.startsWith('erom-research:')).toBe(true)
 })
 
 test('le garde-fou compare de vrais corps, pas des signatures', () => {
-  // extractFn localise le corps par la premiere accolade rencontree apres le nom. Une
-  // fonction qui destructure dans sa liste de parametres piege cette mecanique :
-  // l'extraction s'arrete sur l'accolade fermante du motif, et le test compare alors deux
+  // extractFn localise le corps par la première accolade rencontrée après le nom. Une
+  // fonction qui destructure dans sa liste de paramètres piège cette mécanique :
+  // l'extraction s'arrête sur l'accolade fermante du motif, et le test compare alors deux
   // signatures identiques au lieu de deux corps. Le garde-fou serait vert en ne comparant
-  // rien. Ce meta-test garantit qu'aucune fonction surveillee ne retombe dans ce piege.
+  // rien. Ce méta-test garantit qu'aucune fonction surveillée ne retombe dans ce piège.
   const libSrc = lib.replace(/\bexport function /g, 'function ')
   for (const name of SHARED) {
     const extrait = extractFn(libSrc, name)

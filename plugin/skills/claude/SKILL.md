@@ -54,7 +54,7 @@ Montre la matrice + les angles (table compacte) et attends un go explicite ou de
 Workflow({
   scriptPath: "<SCRIPT de l'Étape 0, chemin absolu, jamais ~>",
   args: { question: <sujet>, matrix: <matrice>, angles: <angles>, depth: "L"|"H",
-          engines: "claude", deepDir: "<DEEP_DIR de l'Étape 1, chemin absolu>", date: <DATE>, title: <sujet> }
+          engines: "claude", deepDir: "<DEEP_DIR de l'Étape 1, chemin absolu>" }
 })
 ```
 Attends le résultat `{ report, coverage, rounds, converged }`. `report` est déjà au schéma et `report.coverage` est pré-calculé (déterministe) : ne pas recomputer.

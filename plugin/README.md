@@ -15,7 +15,8 @@ Choisir : **agy** quand la justesse prime et que tu veux contrôler le plan de
 recherche ; **grok** quand tu veux un second moteur indépendant sans toucher au
 quota Google ; **nlm** quand le sujet va vivre et que tu reviendras poser des
 questions au corpus (`nlm notebook query <notebook_id>`, ou la skill personnelle
-`/notebook-chat` si tu l'as, elle n'est pas fournie ici).
+`/notebook-chat` si tu l'as, elle n'est pas fournie ici) ; **claude** quand tu veux
+le pipeline piloté sans dépendance externe ni quota tiers.
 
 ## Usage
 
@@ -71,7 +72,7 @@ si l'auth est expirée — jamais de findings inventés sur un moteur mort.
 
 ```
 agents/
-  agy-run.md                 forwarder agy : MODE deep-angle + MODE redteam
+  agy-run.md                 forwarder agy : MODE deep-angle (+ MODE redteam, conservé pour usage manuel, plus appelé par le Workflow)
   claude-run.md              chercheur natif claude : WebSearch/WebFetch, claims falsifiables sourcés
   notebook-creator.md        pilote nlm : create → research → import → label → synthèse
 scripts/
@@ -85,9 +86,10 @@ scripts/
 ```
 
 Le plugin est autonome : aucun script ni agent hors de sa racine. Le test de
-synchro `deep-research-sync.test.mjs` verrouille deux invariants — les helpers
-inlinés dans le Workflow restent identiques à la lib, et le Workflow ne cible
-que des agents du namespace `erom-research:`.
+synchro `deep-research-sync.test.mjs` verrouille trois invariants : les helpers
+inlinés dans le Workflow restent identiques à la lib, le Workflow ne cible
+que des agents du namespace `erom-research:`, et aucune fonction surveillée
+n'échappe à cette comparaison octet à octet (garde-fou du garde-fou).
 
 ## Licence
 

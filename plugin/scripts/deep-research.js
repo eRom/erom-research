@@ -1,5 +1,5 @@
 export const meta = { name: 'erom-deep-research',
-  description: 'Multi-agent deep research: agy browses, Claude reasons; adaptive rounds L<=2/H<=4, red-team, synthesis.',
+  description: 'Multi-agent deep research: agy or native Claude subagents browse, Claude reasons; adaptive rounds L<=2/H<=4, 3-voice adversarial vote, synthesis.',
   phases: [{ title:'Round 1' },{ title:'Round 2+' },{ title:'Red-team' },{ title:'Synthesize' }] }
 
 // ─── INLINED from deep-research-lib.mjs — keep in sync (tests/deep-research-sync.test.mjs) ───
@@ -64,7 +64,7 @@ function isConverged(opts) {
   return allAnswered && !lastRoundChangedMaterially && (openCriticalThreads || 0) === 0
 }
 
-function computeCoverage(state, angles) {
+function computeCoverage(state, angles, verdicts) {
   const allSources = state.findings.flatMap(f => f.sources || [])
   const domains = new Set(allSources.map(domainOf))
   const penalties = []
@@ -80,6 +80,7 @@ function computeCoverage(state, angles) {
     sourceCount: new Set(allSources.map(normURL)).size,
     distinctDomains: domains.size,
     unverifiedClaims: state.findings.filter(f => f.redteam && f.redteam.verdict === 'unverified').length,
+    killedClaims: (verdicts || []).filter(v => v && v.verdict === 'kill').length,
     unresolvedCriticalGaps: [],
     confidencePenalties: penalties,
   }
@@ -162,9 +163,9 @@ const GLOBAL_SCHEMA = { type:'object', required:['coverage','preConclusions','ga
     label:{type:'string'}, query:{type:'string'}, targetsGap:{type:'string'} }}},
   converged:{type:'boolean'}, convergenceRationale:{type:'string'},
   lastRoundChangedMaterially:{type:'boolean'}, openCriticalThreads:{type:'number'}, answered:{type:'number'} } }
-const REDTEAM_SCHEMA = { type:'object', required:['claim','refuted','verdict'], properties:{
+const REDTEAM_SCHEMA = { type:'object', required:['claim','verdict'], properties:{
   claim:{type:'string'}, refuted:{type:'boolean'}, refutingEvidence:{type:'string'},
-  refutingSource:{type:['string','null']}, recencyOk:{type:'boolean'},
+  refutingSource:{type:['string','null']},
   verdict:{enum:['hold','downgrade','kill']}, newConfidence:{enum:['high','medium','low']} } }
 const REPORT_SCHEMA = { type:'object', required:['tldr','findings','conclusion','references'], properties:{
   tldr:{type:'array', items:{type:'string'}}, context:{type:'string'},
@@ -183,7 +184,7 @@ const REPORT_SCHEMA = { type:'object', required:['tldr','findings','conclusion',
 // The engine may deliver `args` as a JSON string; parse defensively so the
 // command (or a manual invocation) can pass either an object or a string.
 const _args = typeof args === 'string' ? JSON.parse(args) : (args || {})
-const { question, matrix, angles, depth, engines, deepDir, date, title } = _args
+const { question, matrix, angles, depth, engines, deepDir } = _args
 const MAX_ROUNDS = depth === 'H' ? 4 : 2
 const RT_TARGETS = depth === 'H' ? 10 : 5
 const ANGLE_TIMEOUT = depth === 'H' ? '4m0s' : '3m0s'
@@ -205,7 +206,7 @@ const ENGINES = {
       `\nBrowse cet angle et rends tes claims au schéma. Angle: ${f.label}`,
   },
 }
-const ENGINE = ENGINES[engines] ?? ENGINES.agy
+const ENGINE = engines == null ? ENGINES.agy : (ENGINES[engines] || (log(`erom-research: engine inconnu "${engines}", repli sur agy`), ENGINES.agy))
 const VOTES_PER_CLAIM = 3
 const votePrompt = (c, v) =>
   `## Vérificateur adversarial (voteur ${v + 1}/${VOTES_PER_CLAIM})\n\n` +
@@ -221,6 +222,7 @@ const votePrompt = (c, v) =>
   `5. Est-ce du marketing, un communiqué, un benchmark cherry-pické, de la spéculation de forum ?\n\n` +
   `Verdict : kill (non étayé, contredit ou marketing) | downgrade (partiellement vrai, plus faible qu'énoncé) | hold (bien étayé, actuel, source à la hauteur).\n` +
   `En cas d'incertitude, réponds downgrade, pas kill : la couverture du rapport signalera le doute.\n` +
+  `Champs attendus : verdict, refuted, refutingSource et refutingEvidence dès que tu votes kill ou downgrade, newConfidence obligatoire sur downgrade (high|medium|low).\n` +
   `Sortie structurée uniquement. L'évidence doit être spécifique.`
 function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) }
 
@@ -255,9 +257,16 @@ while (round < MAX_ROUNDS && !converged) {
   if (!focus.length) break
 }
 
-// Red-team (vote a 3 voix, agents Claude natifs, jamais le moteur de collecte externe)
+// Red-team (vote à 3 voix, agents Claude natifs, jamais le moteur de collecte externe)
 phase('Red-team')
 const targets = rankClaimsForRedTeam(state.findings, RT_TARGETS)
+// Pas d'agentType ici (délibéré, cf. spec) : le voteur hérite du sous-agent par défaut du
+// Workflow. D'après la doc sub-agents de Claude Code, le toolset par défaut d'un sous-agent
+// inclut WebSearch et WebFetch, ce qui couvrirait le besoin du votePrompt (« cherche des preuves
+// contradictoires »), mais ceci n'est pas confirmé spécifiquement pour un agent dispatché par un
+// Workflow. A VALIDER AU PREMIER RUN : si le run ne montre aucun appel WebSearch pendant la phase
+// Red-team, router les votes vers un agentType dédié avec tools: WebSearch, WebFetch (frontmatter
+// façon claude-run.md) plutôt que de laisser les voteurs juger de mémoire paramétrique.
 const verdicts = (await parallel(targets.map(c => () =>
   parallel(Array.from({ length: VOTES_PER_CLAIM }, (_, v) => () =>
     agent(votePrompt(c, v), {
@@ -266,7 +275,7 @@ const verdicts = (await parallel(targets.map(c => () =>
     })
   )).then(votes => {
     const agg = aggregateVotes(votes, { votesCast: VOTES_PER_CLAIM })
-    log(`"${String(c.claim).slice(0, 50)}": ${agg.verdict} (${agg.validVotes} voix valides, ${agg.erroredVotes} en echec)`)
+    log(`"${String(c.claim).slice(0, 50)}": ${agg.verdict} (${agg.validVotes} voix valides, ${agg.erroredVotes} en échec)`)
     return { claim: c.claim, ...agg }
   })
 ))).filter(Boolean)
@@ -274,12 +283,12 @@ const survivors = applyRedTeam(state.findings, verdicts)
 
 // Synthesis (Claude)
 phase('Synthesize')
-const coverage = computeCoverage({ findings:survivors, failedAngles:state.failedAngles }, attemptedAngles)
+const coverage = computeCoverage({ findings:survivors, failedAngles:state.failedAngles }, attemptedAngles, verdicts)
 if (lastAnalysis && lastAnalysis.gaps) coverage.unresolvedCriticalGaps = lastAnalysis.gaps.filter(g => g.recommendationChanging).map(g => g.question)
 let report = await agent(
   `Synthesize the final research report.\n\nQuestion: ${question}\n\nMatrix:\n${JSON.stringify(matrix)}\n\n` +
-  `Verified findings (JSON):\n${JSON.stringify(survivors)}\n\nCoverage:\n${JSON.stringify(coverage)}\n\n` +
-  `Produce REPORT_SCHEMA. Tag each finding evidence|inference|assumption. If the question asks to apply findings to a specific design, set appliedRecommendation.applies=true and write a concrete recommendation (leave groundedContext empty — the caller fills local context). Map references [n] to real URLs from the findings' sources.`,
+  `Findings après vote adversarial (JSON):\n${JSON.stringify(survivors)}\n\nCoverage:\n${JSON.stringify(coverage)}\n\n` +
+  `Produce REPORT_SCHEMA. Tag each finding evidence|inference|assumption. Un finding dont redteam.verdict === 'unverified' n'a été ni confirmé ni réfuté (échec des vérificateurs) : tague-le en assumption, plafonne sa confidence à low, et dis-le dans son caveats. If the question asks to apply findings to a specific design, set appliedRecommendation.applies=true and write a concrete recommendation (leave groundedContext empty — the caller fills local context). Map references [n] to real URLs from the findings' sources.`,
   { label: 'synthesize', phase: 'Synthesize', schema: REPORT_SCHEMA, effort: 'high' })
 if (!report) {
   report = {

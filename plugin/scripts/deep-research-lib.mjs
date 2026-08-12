@@ -64,7 +64,7 @@ export function isConverged(opts) {
   return allAnswered && !lastRoundChangedMaterially && (openCriticalThreads || 0) === 0
 }
 
-export function computeCoverage(state, angles) {
+export function computeCoverage(state, angles, verdicts) {
   const allSources = state.findings.flatMap(f => f.sources || [])
   const domains = new Set(allSources.map(domainOf))
   const penalties = []
@@ -80,6 +80,7 @@ export function computeCoverage(state, angles) {
     sourceCount: new Set(allSources.map(normURL)).size,
     distinctDomains: domains.size,
     unverifiedClaims: state.findings.filter(f => f.redteam && f.redteam.verdict === 'unverified').length,
+    killedClaims: (verdicts || []).filter(v => v && v.verdict === 'kill').length,
     unresolvedCriticalGaps: [],
     confidencePenalties: penalties,
   }
@@ -180,6 +181,7 @@ export function renderReportMarkdown(report, meta) {
   L.push(`- Angles complétés : ${c.anglesCompleted ?? '?'} · échoués : ${c.anglesFailed ?? 0}${(c.failedAngleLabels && c.failedAngleLabels.length) ? ` (${c.failedAngleLabels.join(', ')})` : ''}`)
   L.push(`- Sources : ${c.sourceCount ?? '?'} · domaines distincts : ${c.distinctDomains ?? '?'}`)
   if (c.unverifiedClaims) L.push(`- Claims non vérifiables : ${c.unverifiedClaims} (vérificateurs en échec, ni confirmés ni réfutés)`)
+  if (c.killedClaims) L.push(`- Claims écartées par le vote : ${c.killedClaims} (au moins 2 voix sur 3 en kill)`)
   if (c.unresolvedCriticalGaps && c.unresolvedCriticalGaps.length) { L.push('- Lacunes critiques non résolues :'); for (const g of c.unresolvedCriticalGaps) L.push(`  - ${g}`) }
   if (c.confidencePenalties && c.confidencePenalties.length) { L.push('- Pénalités de confiance :'); for (const p of c.confidencePenalties) L.push(`  - ${p}`) }
   L.push('')

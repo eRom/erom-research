@@ -1,11 +1,11 @@
 # Patterns et conventions
 
-_Mis à jour : 2026-07-30_
+_Mis à jour : 2026-08-12_
 
 ## Nommage
 
 - Convention 2026-07-30 : plugin `erom-research` = nom du dépôt GitHub `eRom/erom-research` (le dossier local reste `erom-agence-deep-research`, choix assumé pour ne pas casser terminaux et scripts).
-- Skills : le nom du moteur seul, jamais le domaine — `agy`, `grok`, `nlm`. Invocation : `/erom-research:<moteur>`.
+- Skills : le nom du moteur seul, jamais le domaine — `agy`, `claude`, `grok`, `nlm`. Invocation : `/erom-research:<moteur>`.
 - Toute référence croisée interne est **namespacée** : `agentType: 'erom-research:agy-run'`, `subagent_type: "erom-research:notebook-creator"`. Un nom nu résoudrait vers un agent utilisateur et casserait l'autonomie.
 
 ## Chemins du plugin
@@ -20,7 +20,7 @@ _Mis à jour : 2026-07-30_
 
 - Les helpers de calcul existent en double : inlinés dans `deep-research.js` (contrainte des scripts Workflow) et exportés depuis `deep-research-lib.mjs`. **Toute édition d'un helper partagé se fait à l'identique dans les deux fichiers**, le test de synchro compare octet à octet. `renderReportMarkdown` n'est pas inliné et s'édite seul.
 - Langue : code, commentaires et chaînes techniques en anglais ; en-têtes de rapport rendu et prompts des agents en français.
-- Fail-open sur panne infra : un angle mort revient `status: failed` et dégrade la couverture (`coverage.failedAngleLabels`) sans crasher le run ; un red-team injoignable rend `verdict: 'hold'` plutôt que de tuer un claim.
+- Fail-open sur panne infra : un angle mort revient `status: failed` et dégrade la couverture (`coverage.failedAngleLabels`) sans crasher le run ; côté vote adversarial (3 voix), moins de `threshold` voix valides sur 3 rend `verdict: 'unverified'` (compté dans `coverage.unverifiedClaims`) plutôt que de tuer ou de valider silencieusement un claim.
 
 ## Skills
 
