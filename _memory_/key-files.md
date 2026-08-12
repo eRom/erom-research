@@ -27,8 +27,8 @@ _Mis à jour : 2026-07-30_
 
 | Fichier | Rôle |
 |---|---|
-| `scripts/deep-agy.js` | Script Workflow. Helpers de calcul **inlinés** (un script Workflow ne peut rien importer), boucle de rounds, red-team, synthèse. |
-| `scripts/deep-agy-lib.mjs` | Source de vérité des mêmes helpers + `renderReportMarkdown` (en-têtes de rapport en français). |
+| `scripts/deep-research.js` | Script Workflow. Helpers de calcul **inlinés** (un script Workflow ne peut rien importer), boucle de rounds, red-team, synthèse. |
+| `scripts/deep-research-lib.mjs` | Source de vérité des mêmes helpers + `renderReportMarkdown` (en-têtes de rapport en français). |
 | `scripts/render-report.mjs` | CLI `node render-report.mjs <json>` → markdown sur stdout. Importe la lib en spécifieur relatif. |
 | `scripts/agy_scratch.py` | Lance UN `agy --print` dans un scratch dir puis déplace les sorties. Évite les snapshots de repo et les rejets de sandbox. Défaut `--model "Gemini 3.6 Flash (High)"`. |
 | `scripts/recover_transcript.py` | Plan B : récupère la dernière réponse modèle depuis le transcript agy quand le fichier de sortie est vide. |
@@ -38,8 +38,8 @@ _Mis à jour : 2026-07-30_
 
 | Fichier | Rôle |
 |---|---|
-| `scripts/tests/deep-agy-lib.test.mjs` | Unitaires de la lib (dédup, corroboration, red-team, rendu). |
-| `scripts/tests/deep-agy-sync.test.mjs` | **Garde-fou critique** : helpers inlinés == lib, octet à octet ; et le Workflow ne cible que le namespace `erom-research:`. |
+| `scripts/tests/deep-research-lib.test.mjs` | Unitaires de la lib (dédup, corroboration, red-team, rendu). |
+| `scripts/tests/deep-research-sync.test.mjs` | **Garde-fou critique** : helpers inlinés == lib, octet à octet ; et le Workflow ne cible que le namespace `erom-research:`. |
 | `scripts/tests/test_recover_transcript.py` | Unitaires du plan B. |
 
 Lancement : `cd scripts && bun test tests/` puis `python3 tests/test_recover_transcript.py`.

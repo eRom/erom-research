@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { normURL, corroborationOf, ingestRound, rankClaimsForRedTeam, applyRedTeam, renderReportMarkdown } from '../deep-agy-lib.mjs'
+import { normURL, corroborationOf, ingestRound, rankClaimsForRedTeam, applyRedTeam, renderReportMarkdown } from '../deep-research-lib.mjs'
 
 test('normURL strips www and trailing slash, lowercases', () => {
   expect(normURL('https://www.Example.com/Path/')).toBe('example.com/path')
@@ -49,6 +49,15 @@ test('applyRedTeam kills, downgrades, holds', () => {
   const r = applyRedTeam(findings, verdicts)
   expect(r.map(f => f.claim)).toEqual(['d', 'h'])
   expect(r.find(f => f.claim === 'd').confidence).toBe('low')
+})
+
+test('renderReportMarkdown: sourceTool paramétrable, défaut agy', () => {
+  const report = { tldr: [], findings: [], coverage: {}, conclusion: { recommendation: 'R', overallConfidence: 'high' }, references: [] }
+  const base = { title: 'T', depth: 'L', rounds: 1, converged: true, date: '2026-08-12' }
+  expect(renderReportMarkdown(report, base)).toContain('source_tool: erom-research:agy')
+  const claude = renderReportMarkdown(report, { ...base, sourceTool: 'erom-research:claude', engine: 'claude' })
+  expect(claude).toContain('source_tool: erom-research:claude')
+  expect(claude).toContain('engine: claude')
 })
 
 test('renderReportMarkdown emits French scaffolding, no Spanish', () => {

@@ -2,7 +2,7 @@
 // Render a deep-research report object to markdown via the shared lib.
 // Usage: node render-report.mjs <path-to-json>   where json = { report, meta }
 import { readFileSync } from 'node:fs'
-import { renderReportMarkdown } from './deep-agy-lib.mjs'
+import { renderReportMarkdown } from './deep-research-lib.mjs'
 
 const jsonPath = process.argv[2]
 if (!jsonPath) { console.error('usage: render-report.mjs <report-json-path>'); process.exit(1) }

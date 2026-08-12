@@ -1,8 +1,8 @@
-export const meta = { name: 'deep-agy',
+export const meta = { name: 'erom-deep-research',
   description: 'Multi-agent deep research: agy browses, Claude reasons; adaptive rounds L<=2/H<=4, red-team, synthesis.',
   phases: [{ title:'Round 1' },{ title:'Round 2+' },{ title:'Red-team' },{ title:'Synthesize' }] }
 
-// ─── INLINED from deep-agy-lib.mjs — keep in sync (tests/deep-agy-sync.test.mjs) ───
+// ─── INLINED from deep-research-lib.mjs — keep in sync (tests/deep-research-sync.test.mjs) ───
 function normURL(u) {
   try {
     const p = new URL(u)

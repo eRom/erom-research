@@ -8,7 +8,7 @@ _Mis à jour : 2026-07-30_
 
 | Skill | Moteur | Transport | Synchronicité |
 |---|---|---|---|
-| `agy` | Antigravity CLI (Gemini groundé Google) | Workflow `deep-agy.js` + subagents | bloquant, 5-15 min |
+| `agy` | Antigravity CLI (Gemini groundé Google) | Workflow `deep-research.js` + subagents | bloquant, 5-15 min |
 | `grok` | Grok CLI, workflow builtin `deep-research` | CLI wrapper `grok-deep` | asynchrone (`run_in_background`) |
 | `nlm` | NotebookLM (CLI `nlm`) | subagent `notebook-creator` (`background: true`) | asynchrone, 10-20 min |
 
@@ -18,12 +18,12 @@ _Mis à jour : 2026-07-30_
 .claude-plugin/plugin.json   manifeste
 skills/{agy,grok,nlm}/SKILL.md
 agents/                      agy-run.md, notebook-creator.md
-scripts/                     deep-agy.js, deep-agy-lib.mjs, render-report.mjs,
+scripts/                     deep-research.js, deep-research-lib.mjs, render-report.mjs,
                              agy_scratch.py, recover_transcript.py, grok-deep
 scripts/tests/               bun (2 fichiers) + python (1 fichier)
 ```
 
-**Flux agy** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-agy.js)` → N angles en parallèle par round via subagents `erom-research:agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
+**Flux agy** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-research.js)` → N angles en parallèle par round via subagents `erom-research:agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
 
 **Sorties** : `docs/research/{agy,grok,nlm}/` du projet courant, jamais dans le plugin.
 

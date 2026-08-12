@@ -1,6 +1,6 @@
 // Pure, node-testable helpers for the agy skill (plugin erom-research).
 // SINGLE SOURCE OF TRUTH — these functions are inlined verbatim into
-// deep-agy.js (guarded by deep-agy-sync.test.mjs).
+// deep-research.js (guarded by deep-research-sync.test.mjs).
 // Keep dependency-free and side-effect-free.
 
 export function normURL(u) {
@@ -119,7 +119,9 @@ export function applyRedTeam(findings, verdicts) {
 export function renderReportMarkdown(report, meta) {
   const L = []
   L.push([
-    '---', `title: "${meta.title}"`, 'type: research', 'source_tool: erom-research:agy',
+    '---', `title: "${meta.title}"`, 'type: research',
+    `source_tool: ${meta.sourceTool || 'erom-research:agy'}`,
+    ...(meta.engine ? [`engine: ${meta.engine}`] : []),
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,
     `created: ${meta.date}`, 'sensitivity: internal', '---', '',
   ].join('\n'))

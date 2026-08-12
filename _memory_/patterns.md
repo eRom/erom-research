@@ -18,7 +18,7 @@ _Mis à jour : 2026-07-30_
 
 ## Code
 
-- Les helpers de calcul existent en double : inlinés dans `deep-agy.js` (contrainte des scripts Workflow) et exportés depuis `deep-agy-lib.mjs`. **Toute édition d'un helper partagé se fait à l'identique dans les deux fichiers**, le test de synchro compare octet à octet. `renderReportMarkdown` n'est pas inliné et s'édite seul.
+- Les helpers de calcul existent en double : inlinés dans `deep-research.js` (contrainte des scripts Workflow) et exportés depuis `deep-research-lib.mjs`. **Toute édition d'un helper partagé se fait à l'identique dans les deux fichiers**, le test de synchro compare octet à octet. `renderReportMarkdown` n'est pas inliné et s'édite seul.
 - Langue : code, commentaires et chaînes techniques en anglais ; en-têtes de rapport rendu et prompts des agents en français.
 - Fail-open sur panne infra : un angle mort revient `status: failed` et dégrade la couverture (`coverage.failedAngleLabels`) sans crasher le run ; un red-team injoignable rend `verdict: 'hold'` plutôt que de tuer un claim.
 

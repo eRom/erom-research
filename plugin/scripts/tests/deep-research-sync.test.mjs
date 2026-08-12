@@ -1,14 +1,14 @@
-// scripts/tests/deep-agy-sync.test.mjs (plugin erom-research)
-// Garde-fou : les helpers inlinés dans deep-agy.js doivent rester identiques
-// à deep-agy-lib.mjs (les scripts Workflow ne peuvent pas importer de fichier local).
+// scripts/tests/deep-research-sync.test.mjs (plugin erom-research)
+// Garde-fou : les helpers inlinés dans deep-research.js doivent rester identiques
+// à deep-research-lib.mjs (les scripts Workflow ne peuvent pas importer de fichier local).
 import { test, expect } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const wf = readFileSync(join(here, '..', 'deep-agy.js'), 'utf8')
-const lib = readFileSync(join(here, '..', 'deep-agy-lib.mjs'), 'utf8')
+const wf = readFileSync(join(here, '..', 'deep-research.js'), 'utf8')
+const lib = readFileSync(join(here, '..', 'deep-research-lib.mjs'), 'utf8')
 
 // Extrait le corps d'une fonction nommée `function NAME(...) { ... }` (accolades équilibrées).
 function extractFn(src, name) {
@@ -37,7 +37,7 @@ for (const name of SHARED) {
   })
 }
 
-test('deep-agy.js targets the plugin-namespaced forwarder, not a user-scoped agent', () => {
+test('deep-research.js targets the plugin-namespaced forwarder, not a user-scoped agent', () => {
   expect(wf).not.toContain('antigravity:agy-rescue')
   expect(wf).toMatch(/agentType:\s*'erom-research:agy-run'/)
   // le plugin doit être autonome : aucun agent hors namespace erom-research:

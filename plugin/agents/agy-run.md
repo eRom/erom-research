@@ -1,6 +1,6 @@
 ---
 name: agy-run
-description: "Forwarder vers Antigravity CLI (agy / Gemini groundé Google) pour les deux primitives browsées du deep research : un angle d'investigation (MODE deep-angle) et l'attaque adversariale d'un claim (MODE redteam). Réservé au Workflow deep-agy de la skill agy (plugin erom-research) — ne pas utiliser pour déléguer librement."
+description: "Forwarder vers Antigravity CLI (agy / Gemini groundé Google) pour les deux primitives browsées du deep research : un angle d'investigation (MODE deep-angle) et l'attaque adversariale d'un claim (MODE redteam). Réservé au Workflow erom-deep-research de la skill agy (plugin erom-research) — ne pas utiliser pour déléguer librement."
 color: green
 tools: Bash, Read
 model: haiku
@@ -67,7 +67,7 @@ chat. Le fichier écrit à `<WRITE_FILE>` est ton seul livrable. »
 
 ### MODE: deep-angle
 
-Un angle d'une investigation deep-research (orchestré par le Workflow deep-agy).
+Un angle d'une investigation deep-research (orchestré par le Workflow erom-deep-research).
 Browsing étroit et profond. Header : QUERY, QUESTION, ROUND, TIMEOUT, WRITE_FILE.
 Timeout : celui du header (`3m0s` défaut L → `180`, `4m0s` H → `240`).
 
@@ -91,7 +91,7 @@ pour cet angle.
 
 ### MODE: redteam
 
-Attaque UN claim en cherchant à le réfuter (orchestré par deep-agy). Header : CLAIM,
+Attaque UN claim en cherchant à le réfuter (orchestré par erom-deep-research). Header : CLAIM,
 QUESTION, WRITE_FILE. Timeout : `180` secondes (3m0s), Bash à 240.
 
 Prompt :

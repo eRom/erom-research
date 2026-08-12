@@ -5,7 +5,7 @@ user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
 
-Deep research multi-rounds. Ne remplace pas une recherche web ordinaire (`search-builtin` pour un fait, `search-perplexity` pour un tour d'horizon) : ici on boucle via le Workflow `deep-agy` — agy browse plusieurs angles par round, Claude juge couverture et convergence entre rounds, une passe red-team attaque les claims centraux/mono-source, puis synthèse.
+Deep research multi-rounds. Ne remplace pas une recherche web ordinaire (`search-builtin` pour un fait, `search-perplexity` pour un tour d'horizon) : ici on boucle via le Workflow `erom-deep-research` — agy browse plusieurs angles par round, Claude juge couverture et convergence entre rounds, une passe red-team attaque les claims centraux/mono-source, puis synthèse.
 
 > Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `erom-research:agy-run` par angle/claim.
 
@@ -16,7 +16,7 @@ $ARGUMENTS
 
 Ces deux chemins sont déjà absolus dans ce texte : recopie-les littéralement, ne les reconstruis pas.
 
-- `SCRIPT` = `${CLAUDE_PLUGIN_ROOT}/scripts/deep-agy.js`
+- `SCRIPT` = `${CLAUDE_PLUGIN_ROOT}/scripts/deep-research.js`
 - `RENDER` = `${CLAUDE_PLUGIN_ROOT}/scripts/render-report.mjs`
 
 Si `${CLAUDE_PLUGIN_ROOT}` te parvient non expansé, résous-le : deux niveaux au-dessus du « Base directory for this skill » injecté ci-dessus.

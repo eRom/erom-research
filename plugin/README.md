@@ -70,8 +70,8 @@ agents/
   agy-run.md                 forwarder agy : MODE deep-angle + MODE redteam
   notebook-creator.md        pilote nlm : create → research → import → label → synthèse
 scripts/
-  deep-agy.js                Workflow multi-rounds (helpers inlinés, cf. test de synchro)
-  deep-agy-lib.mjs           lib partagée : dédup, couverture, convergence, red-team, rendu
+  deep-research.js           Workflow multi-rounds (helpers inlinés, cf. test de synchro)
+  deep-research-lib.mjs      lib partagée : dédup, couverture, convergence, red-team, rendu
   render-report.mjs          rapport JSON → markdown
   agy_scratch.py             runner agy en scratch dir (0 snapshot, 0 rejet sandbox)
   recover_transcript.py      plan B : récupère la réponse depuis le transcript agy
@@ -80,7 +80,7 @@ scripts/
 ```
 
 Le plugin est autonome : aucun script ni agent hors de sa racine. Le test de
-synchro `deep-agy-sync.test.mjs` verrouille deux invariants — les helpers
+synchro `deep-research-sync.test.mjs` verrouille deux invariants — les helpers
 inlinés dans le Workflow restent identiques à la lib, et le Workflow ne cible
 que des agents du namespace `erom-research:`.
 

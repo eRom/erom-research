@@ -34,7 +34,7 @@ Conséquence : un défaut de modèle périmé ne casse rien tant que l'ancien mo
 
 ## Les helpers partagés sont dupliqués
 
-`deep-agy.js` inline les helpers de `deep-agy-lib.mjs` parce qu'un script Workflow ne peut pas importer de fichier local. `deep-agy-sync.test.mjs` compare les corps de fonction **octet à octet** : éditer un helper d'un seul côté fait rougir la suite. `renderReportMarkdown` n'est pas inliné et échappe à la contrainte.
+`deep-research.js` inline les helpers de `deep-research-lib.mjs` parce qu'un script Workflow ne peut pas importer de fichier local. `deep-research-sync.test.mjs` compare les corps de fonction **octet à octet** : éditer un helper d'un seul côté fait rougir la suite. `renderReportMarkdown` n'est pas inliné et échappe à la contrainte.
 
 ## Dépôts et push
 
