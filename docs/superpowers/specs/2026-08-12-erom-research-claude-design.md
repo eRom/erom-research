@@ -108,7 +108,7 @@ bundled ne s'en sert nulle part, d'où son coût uniforme de 3,7M tokens.
 | Phase | Nature de la tâche | Tier |
 |---|---|---|
 | Angles, engine `claude` | chercher, lire, extraire dans un schéma fermé | `model: 'sonnet'`, `effort: 'medium'` |
-| Angles, engine `agy` | forwarder vers le CLI, le raisonnement est chez Gemini | `model: 'sonnet'`, `effort: 'low'` |
+| Angles, engine `agy` | forwarder vers le CLI, le raisonnement est chez Gemini | aucun pin, `agy-run.md` déclare déjà `model: haiku` |
 | Analyse de convergence | raisonner sur tout l'état accumulé | `model` omis (hérite de la session), `effort: 'high'` |
 | Vote 3 voix | juger une claim isolée | `model: 'sonnet'`, `effort: 'medium'` |
 | Synthèse | qualité finale du rapport | `model` omis (hérite de la session), `effort: 'high'` |
@@ -117,8 +117,14 @@ Omettre `model` sur les deux phases de raisonnement est délibéré : elles doiv
 suivre le modèle que Romain a choisi pour la session, alors que les phases
 mécaniques restent épinglées sur un tier bas quelle que soit la session.
 
-À valider au premier run : la valeur attendue par `opts.model` est-elle `'sonnet'`
-ou `'claude-sonnet-5'`. Sans effet sur le design.
+Vérifié par probe le 12/08/2026 (workflow `probe-agent-opts`, 3 agents, 2,5 s) :
+`model: 'sonnet'` et `model: 'claude-sonnet-5'` produisent tous deux un agent
+`claude-sonnet-5`, et l'absence de pin fait hériter du modèle de session
+(`claude-opus-5[1m]` au moment du probe). La forme courte `'sonnet'` est retenue.
+
+Ne pas pinner l'engine `agy` est délibéré : `agy-run.md` porte `model: haiku` dans
+son frontmatter, le passer à `sonnet` serait une régression de coût sur un
+forwarder qui ne raisonne pas.
 
 ### Agent claude-run
 
