@@ -7,7 +7,7 @@ allowed-tools: Bash, Write, Read, Workflow, Agent
 
 Deep research multi-rounds. Ne remplace pas une recherche web ordinaire (`search-builtin` pour un fait, `search-perplexity` pour un tour d'horizon) : ici on boucle via le Workflow `erom-deep-research` — agy browse plusieurs angles par round, Claude juge couverture et convergence entre rounds, une passe red-team attaque les claims centraux/mono-source, puis synthèse.
 
-> Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `erom-research:agy-run` par angle/claim.
+> Cette skill AUTORISE explicitement l'appel du tool `Workflow` (opt-in par instruction de skill). Le Workflow spawne un subagent `erom-research:agy-run` par angle ; la vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne pas consommer trois appels de quota Google par claim.
 
 Requête brute :
 $ARGUMENTS
@@ -111,6 +111,6 @@ la couverture. Si des angles ont échoué, la phrase de clôture le dit, avec la
 > chat — elle n'existe que dans le rapport et le message de commit.
 
 ## Notes
-- Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle/claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
+- Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle ; la vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne pas consommer trois appels de quota Google par claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
 - Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:agy` aux décisions où la justesse prime.
 - Routage des trois moteurs : `agy` = justesse pilotée (matrice, plan gate, red-team) ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.

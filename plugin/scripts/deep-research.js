@@ -205,8 +205,22 @@ const ENGINES = {
   },
 }
 const ENGINE = ENGINES[engines] ?? ENGINES.agy
-const redTeamPrompt = (c, i) =>
-  `MODE: redteam\nWRITE_FILE: ${deepDir}/redteam-${i}.md\nQUESTION: ${question}\nCLAIM: ${c.claim}\nUSER_TEXT:\n${c.claim}`
+const VOTES_PER_CLAIM = 3
+const votePrompt = (c, v) =>
+  `## Vérificateur adversarial (voteur ${v + 1}/${VOTES_PER_CLAIM})\n\n` +
+  `Sois SCEPTIQUE. Cherche à RÉFUTER ce claim. Deux voix contre sur trois le font tomber.\n\n` +
+  `Question de recherche : ${question}\n\nClaim attaqué : "${c.claim}"\n` +
+  `Source : ${(c.sources && c.sources[0]) || 'inconnue'} (${c.sourceQuality})\n` +
+  `Preuve avancée : ${c.evidence || '(aucune)'}\n\n` +
+  `Checklist :\n` +
+  `1. La preuve avancée soutient-elle vraiment le claim, ou est-ce une surinterprétation ?\n` +
+  `2. Cherche des preuves contradictoires. Une source crédible le conteste ou le nuance fortement ?\n` +
+  `3. La qualité de source suffit-elle à la force du claim ? Un claim extraordinaire exige du primaire.\n` +
+  `4. Est-il périmé ? Un vieux claim dans un domaine qui bouge vite est suspect.\n` +
+  `5. Est-ce du marketing, un communiqué, un benchmark cherry-pické, de la spéculation de forum ?\n\n` +
+  `Verdict : kill (non étayé, contredit ou marketing) | downgrade (partiellement vrai, plus faible qu'énoncé) | hold (bien étayé, actuel, source à la hauteur).\n` +
+  `En cas d'incertitude, réponds downgrade, pas kill : la couverture du rapport signalera le doute.\n` +
+  `Sortie structurée uniquement. L'évidence doit être spécifique.`
 function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) }
 
 const state = { findings: [], seenKeys: new Set(), failedAngles: [] }
@@ -240,11 +254,20 @@ while (round < MAX_ROUNDS && !converged) {
   if (!focus.length) break
 }
 
-// Red-team (agy)
+// Red-team (vote a 3 voix, agents Claude natifs, jamais le moteur de collecte externe)
 phase('Red-team')
 const targets = rankClaimsForRedTeam(state.findings, RT_TARGETS)
-const verdicts = (await parallel(targets.map((c, i) => () =>
-  agent(redTeamPrompt(c, i), { label:`rt:${c.id}`, phase:'Red-team', schema:REDTEAM_SCHEMA, agentType:'erom-research:agy-run' })
+const verdicts = (await parallel(targets.map(c => () =>
+  parallel(Array.from({ length: VOTES_PER_CLAIM }, (_, v) => () =>
+    agent(votePrompt(c, v), {
+      label: `vote${v}:${c.id}`, phase: 'Red-team',
+      schema: REDTEAM_SCHEMA, model: 'sonnet', effort: 'medium',
+    })
+  )).then(votes => {
+    const agg = aggregateVotes(votes, { votesCast: VOTES_PER_CLAIM })
+    log(`"${String(c.claim).slice(0, 50)}": ${agg.verdict} (${agg.validVotes} voix valides, ${agg.erroredVotes} en echec)`)
+    return { claim: c.claim, ...agg }
+  })
 ))).filter(Boolean)
 const survivors = applyRedTeam(state.findings, verdicts)
 
