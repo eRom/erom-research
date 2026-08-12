@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { normURL, corroborationOf, ingestRound, rankClaimsForRedTeam, applyRedTeam, renderReportMarkdown } from '../deep-research-lib.mjs'
+import { normURL, corroborationOf, ingestRound, rankClaimsForRedTeam, applyRedTeam, renderReportMarkdown, aggregateVotes } from '../deep-research-lib.mjs'
 
 test('normURL strips www and trailing slash, lowercases', () => {
   expect(normURL('https://www.Example.com/Path/')).toBe('example.com/path')
@@ -69,4 +69,58 @@ test('renderReportMarkdown emits French scaffolding, no Spanish', () => {
   expect(md).toContain('## Couverture et confiance')
   expect(md).toContain('[PREUVE · high]')
   expect(md).not.toMatch(/## (Contexto|Conclusión|Referencias|Cobertura)/)
+})
+
+test('aggregateVotes: unanimité hold', () => {
+  const r = aggregateVotes([{ verdict: 'hold' }, { verdict: 'hold' }, { verdict: 'hold' }])
+  expect(r.verdict).toBe('hold')
+  expect(r.validVotes).toBe(3)
+  expect(r.erroredVotes).toBe(0)
+})
+
+test('aggregateVotes: 2 kill sur 3 tuent la claim', () => {
+  expect(aggregateVotes([{ verdict: 'kill' }, { verdict: 'kill' }, { verdict: 'hold' }]).verdict).toBe('kill')
+})
+
+test('aggregateVotes: 1 kill isolé ne suffit pas', () => {
+  expect(aggregateVotes([{ verdict: 'kill' }, { verdict: 'hold' }, { verdict: 'hold' }]).verdict).toBe('hold')
+})
+
+test('aggregateVotes: cas mixte kill+downgrade compte 2 votes contre', () => {
+  const r = aggregateVotes([{ verdict: 'kill' }, { verdict: 'downgrade', newConfidence: 'medium' }, { verdict: 'hold' }])
+  expect(r.verdict).toBe('downgrade')
+  expect(r.newConfidence).toBe('medium')
+})
+
+test('aggregateVotes: retient la confiance la plus basse proposée', () => {
+  const r = aggregateVotes([
+    { verdict: 'downgrade', newConfidence: 'medium' },
+    { verdict: 'downgrade', newConfidence: 'low' },
+    { verdict: 'downgrade', newConfidence: 'high' },
+  ])
+  expect(r.newConfidence).toBe('low')
+})
+
+test('aggregateVotes: moins de 2 votes valides = unverified', () => {
+  const r = aggregateVotes([{ verdict: 'hold' }, null, null])
+  expect(r.verdict).toBe('unverified')
+  expect(r.validVotes).toBe(1)
+  expect(r.erroredVotes).toBe(2)
+  expect(aggregateVotes([null, null, null]).verdict).toBe('unverified')
+  expect(aggregateVotes(undefined).verdict).toBe('unverified')
+})
+
+test('aggregateVotes: 2 votes valides suffisent à trancher malgré 1 planté', () => {
+  const r = aggregateVotes([{ verdict: 'kill' }, { verdict: 'kill' }, null])
+  expect(r.verdict).toBe('kill')
+  expect(r.erroredVotes).toBe(1)
+})
+
+test('aggregateVotes: remonte la première source réfutante disponible', () => {
+  const r = aggregateVotes([
+    { verdict: 'kill', refutingSource: 'https://x.com', refutingEvidence: 'E' },
+    { verdict: 'kill' }, { verdict: 'hold' },
+  ])
+  expect(r.refutingSource).toBe('https://x.com')
+  expect(r.refutingEvidence).toBe('E')
 })
