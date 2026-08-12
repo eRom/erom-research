@@ -91,6 +91,11 @@ pour cet angle.
 
 ### MODE: redteam
 
+> Conservé pour usage manuel. Depuis le passage au vote adversarial à trois voix,
+> le Workflow n'appelle plus ce mode : la vérification est toujours faite par des
+> agents Claude natifs, y compris quand la collecte tourne sur agy, afin de ne pas
+> consommer trois appels de quota Google par claim.
+
 Attaque UN claim en cherchant à le réfuter (orchestré par erom-deep-research). Header : CLAIM,
 QUESTION, WRITE_FILE. Timeout : `180` secondes (3m0s), Bash à 240.
 

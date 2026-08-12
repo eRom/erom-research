@@ -11,5 +11,5 @@
   "license": "MIT",
   "keywords": ["deep-research", "research", "agy", "antigravity", "gemini", "grok", "notebooklm", "red-team", "sourcing", "citations"],
   "skills": "./skills/",
-  "agents": ["./agents/agy-run.md", "./agents/notebook-creator.md"]
+  "agents": ["./agents/agy-run.md", "./agents/notebook-creator.md", "./agents/claude-run.md"]
 }
