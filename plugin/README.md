@@ -32,7 +32,7 @@ questions au corpus (`nlm notebook query <notebook_id>`, ou la skill personnelle
 **agy** — Claude décompose le sujet en matrice de preuves + angles, te montre
 le plan (gate, sautable avec `--yes`), puis lance un Workflow : N angles
 browsés en parallèle par round, analyse de convergence entre rounds (2 en
-`L`, jusqu'à 4 en `H`), passe red-team adversariale sur les claims centraux
+`L`, jusqu'à 4 en `H`), vote 3 voix adversarial sur les claims centraux
 et mono-source, synthèse. Bloquant, 5-15 min.
 
 **grok** — asynchrone : lancé en arrière-plan, la conversation continue, le
@@ -76,7 +76,7 @@ agents/
   notebook-creator.md        pilote nlm : create → research → import → label → synthèse
 scripts/
   deep-research.js           Workflow multi-rounds (helpers inlinés, cf. test de synchro)
-  deep-research-lib.mjs      lib partagée : dédup, couverture, convergence, red-team, rendu
+  deep-research-lib.mjs      lib partagée : dédup, couverture, convergence, agrégation de votes, rendu
   render-report.mjs          rapport JSON → markdown
   agy_scratch.py             runner agy en scratch dir (0 snapshot, 0 rejet sandbox)
   recover_transcript.py      plan B : récupère la réponse depuis le transcript agy

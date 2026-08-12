@@ -54,7 +54,8 @@ export function ingestRound(roundResults, state, round) {
   return novel
 }
 
-export function isConverged({ coverage, matrix, lastRoundChangedMaterially, openCriticalThreads }) {
+export function isConverged(opts) {
+  const { coverage, matrix, lastRoundChangedMaterially, openCriticalThreads } = opts || {}
   const critical = (matrix || []).filter(m => m.recommendationChanging)
   const allAnswered = critical.every(m => {
     const c = (coverage || []).find(x => x.matrixId === m.id)

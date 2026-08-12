@@ -47,3 +47,17 @@ test('le workflow ne cible que des agents du namespace erom-research:', () => {
   expect(declared.length).toBeGreaterThan(0)
   for (const a of declared) expect(a.startsWith('erom-research:')).toBe(true)
 })
+
+test('le garde-fou compare de vrais corps, pas des signatures', () => {
+  // extractFn localise le corps par la premiere accolade rencontree apres le nom. Une
+  // fonction qui destructure dans sa liste de parametres piege cette mecanique :
+  // l'extraction s'arrete sur l'accolade fermante du motif, et le test compare alors deux
+  // signatures identiques au lieu de deux corps. Le garde-fou serait vert en ne comparant
+  // rien. Ce meta-test garantit qu'aucune fonction surveillee ne retombe dans ce piege.
+  const libSrc = lib.replace(/\bexport function /g, 'function ')
+  for (const name of SHARED) {
+    const extrait = extractFn(libSrc, name)
+    expect(extrait).not.toBeNull()
+    expect(extrait).toMatch(/\)\s*\{/)
+  }
+})

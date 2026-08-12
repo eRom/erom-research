@@ -113,4 +113,4 @@ la couverture. Si des angles ont échoué, la phrase de clôture le dit, avec la
 ## Notes
 - Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle ; la vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne pas consommer trois appels de quota Google par claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
 - Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:agy` aux décisions où la justesse prime.
-- Routage des trois moteurs : `agy` = justesse pilotée (matrice, plan gate, red-team) ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Routage des quatre moteurs : `agy` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.

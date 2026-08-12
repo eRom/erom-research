@@ -78,7 +78,7 @@ Question globale : <QUESTION>
 Ton angle : <QUERY>
 Règles :
 - Fais une recherche web sur l'angle. Renvoie 4-8 claims FALSIFIABLES portant sur la question globale.
-- Chaque claim : une affirmation vérifiable concrète + une citation d'appui directe + la/les URL(s) source + la qualité de source (primary|secondary|blog|forum|unreliable) + la récence (YYYY-MM-DD ou "unknown").
+- Chaque claim : une affirmation vérifiable concrète + une citation d'appui directe + la/les URL(s) source + la qualité de source (primary|secondary|blog|forum|unreliable) + l'importance (central|supporting|tangential) + la récence (YYYY-MM-DD ou "unknown").
 - Privilégie les sources primaires. Ignore le spam SEO / fermes de contenu.
 - Termine par THREADS TO PULL : les pistes riches à creuser. Classe CHACUNE en decision-critical | contradiction-risk | recency-risk | nice-to-have. N'invente pas de threads pour remplir — si aucune, dis-le.
 - Langue de sortie : celle de la question (défaut français).
