@@ -187,9 +187,24 @@ const MAX_ROUNDS = depth === 'H' ? 4 : 2
 const RT_TARGETS = depth === 'H' ? 10 : 5
 const ANGLE_TIMEOUT = depth === 'H' ? '4m0s' : '3m0s'
 
-const anglePrompt = (f, round, i) =>
-  `MODE: deep-angle\nROUND: ${round}\nWRITE_FILE: ${deepDir}/r${round}-${i}-${slug(f.label)}.md\n` +
-  `QUESTION: ${question}\nQUERY: ${f.query}\nTIMEOUT: ${ANGLE_TIMEOUT}\nUSER_TEXT:\n${f.query}`
+const ENGINES = {
+  agy: {
+    agentType: 'erom-research:agy-run',
+    agentOpts: {},
+    anglePrompt: (f, round, i) =>
+      `MODE: deep-angle\nROUND: ${round}\nWRITE_FILE: ${deepDir}/r${round}-${i}-${slug(f.label)}.md\n` +
+      `QUESTION: ${question}\nQUERY: ${f.query}\nTIMEOUT: ${ANGLE_TIMEOUT}\nUSER_TEXT:\n${f.query}`,
+  },
+  claude: {
+    agentType: 'erom-research:claude-run',
+    agentOpts: { model: 'sonnet', effort: 'medium' },
+    anglePrompt: (f, round, i) =>
+      `ROUND: ${round}\nQUESTION: ${question}\nQUERY: ${f.query}\n` +
+      (f.rationale ? `RATIONALE: ${f.rationale}\n` : '') +
+      `\nBrowse cet angle et rends tes claims au schéma. Angle: ${f.label}`,
+  },
+}
+const ENGINE = ENGINES[engines] ?? ENGINES.agy
 const redTeamPrompt = (c, i) =>
   `MODE: redteam\nWRITE_FILE: ${deepDir}/redteam-${i}.md\nQUESTION: ${question}\nCLAIM: ${c.claim}\nUSER_TEXT:\n${c.claim}`
 function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) }
@@ -203,7 +218,10 @@ while (round < MAX_ROUNDS && !converged) {
   const ph = round === 1 ? 'Round 1' : 'Round 2+'
   attemptedAngles.push(...focus)
   const results = (await parallel(focus.map((f, i) => () =>
-    agent(anglePrompt(f, round, i), { label:`r${round}:${f.label}`, phase:ph, schema:ANGLE_SCHEMA, agentType:'erom-research:agy-run' })
+    agent(ENGINE.anglePrompt(f, round, i), {
+      label: `r${round}:${f.label}`, phase: ph, schema: ANGLE_SCHEMA,
+      agentType: ENGINE.agentType, ...ENGINE.agentOpts,
+    })
   ))).filter(Boolean)
   const novel = ingestRound(results, state, round)
   log(`R${round}: +${novel} findings (${state.findings.length} total, ${state.failedAngles.length} failed angles)`)
@@ -213,7 +231,7 @@ while (round < MAX_ROUNDS && !converged) {
     `Task: for each matrix row give coverage {matrixId,status,corroboration,confidence}. corroboration=independent needs >=2 distinct domains. ` +
     `List pre-conclusions with confidence. List ranked gaps (recommendationChanging flag). If NOT converged, propose nextFocus (label+query) targeting the top recommendation-changing gaps and any decision-critical/contradiction/recency threads. ` +
     `Set converged=true only if every recommendation-changing row is answered+independent, this round changed nothing material, and no critical threads remain. Report lastRoundChangedMaterially and openCriticalThreads.`,
-    { label:`global:r${round}`, phase:ph, schema:GLOBAL_SCHEMA })
+    { label: `global:r${round}`, phase: ph, schema: GLOBAL_SCHEMA, effort: 'high' })
   if (!analysis) { log('erom-research: global analysis returned null — ending round loop with accumulated findings'); break }
   lastAnalysis = analysis
   converged = analysis.converged === true || isConverged({ coverage:analysis.coverage, matrix, lastRoundChangedMaterially:analysis.lastRoundChangedMaterially, openCriticalThreads:analysis.openCriticalThreads })
@@ -238,7 +256,7 @@ let report = await agent(
   `Synthesize the final research report.\n\nQuestion: ${question}\n\nMatrix:\n${JSON.stringify(matrix)}\n\n` +
   `Verified findings (JSON):\n${JSON.stringify(survivors)}\n\nCoverage:\n${JSON.stringify(coverage)}\n\n` +
   `Produce REPORT_SCHEMA. Tag each finding evidence|inference|assumption. If the question asks to apply findings to a specific design, set appliedRecommendation.applies=true and write a concrete recommendation (leave groundedContext empty — the caller fills local context). Map references [n] to real URLs from the findings' sources.`,
-  { label:'synthesize', phase:'Synthesize', schema: REPORT_SCHEMA })
+  { label: 'synthesize', phase: 'Synthesize', schema: REPORT_SCHEMA, effort: 'high' })
 if (!report) {
   report = {
     tldr: [], context: '',

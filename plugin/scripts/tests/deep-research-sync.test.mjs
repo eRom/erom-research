@@ -40,6 +40,7 @@ for (const name of SHARED) {
 test('le workflow ne cible que des agents du namespace erom-research:', () => {
   expect(wf).not.toContain('antigravity:agy-rescue')
   expect(wf).toMatch(/agentType:\s*'erom-research:agy-run'/)
+  expect(wf).toMatch(/agentType:\s*'erom-research:claude-run'/)
   expect(wf).not.toMatch(/agentType:\s*'agy-run'/)
   // Tout agentType litteral du workflow doit porter le prefixe du plugin.
   const declared = [...wf.matchAll(/agentType:\s*'([^']+)'/g)].map(m => m[1])
