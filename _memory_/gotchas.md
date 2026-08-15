@@ -1,6 +1,6 @@
 # Gotchas
 
-_Mis à jour : 2026-08-12_
+_Mis à jour : 2026-08-15_
 
 ## `plugin.json` : `agents` n'accepte pas un répertoire
 
@@ -82,3 +82,7 @@ Conséquence : un défaut de modèle périmé ne casse rien tant que l'ancien mo
 ## Périmètre de `~/.claude/scripts/agy/`
 
 Ce dossier n'était pas un dossier deep research : `classify_source.py` et `recover_transcript.py` servent aussi `/transcribe`, `/video`, `/media`, `/doc-to-md`, qui restent dans `~/.claude`. Seule la partie deep a migré ; `recover_transcript.py` existe désormais en deux exemplaires assumés (ici et là-bas).
+
+## Installations de plugin par scope ET par répertoire
+
+`~/.claude/plugins/installed_plugins.json` enregistre une installation **par scope et par répertoire** : un même plugin peut être en 0.5.0 au scope user et en 0.4.0 dans les enregistrements locaux de plusieurs projets. `claude plugin update` sans flag ne touche que le scope user et répond « already at latest » alors que les locaux restent en arrière ; une session lancée dans ces répertoires charge alors l'ancien cache. Prouvé le 2026-08-15 (release 0.5.0) : après update user, une session headless dans EROM-HQ a chargé la skill 0.4.0 (« Base directory ... /0.4.0/skills/claude » dans son transcript) et écrit dans l'ancien layout. Contrôle : `grep -A3 'erom-research@erom-marketplace' ~/.claude/plugins/installed_plugins.json` ; correction : `claude plugin update <plugin>@<marketplace> --scope local` depuis chaque répertoire listé. Leçon aussi gravée dans la skill `plugin-release`.

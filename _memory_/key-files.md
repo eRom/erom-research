@@ -43,5 +43,6 @@ _Mis à jour : 2026-08-15_
 | `scripts/tests/deep-research-lib.test.mjs` | Unitaires de la lib (dédup, corroboration, red-team, rendu). |
 | `scripts/tests/deep-research-sync.test.mjs` | **Garde-fou critique** : helpers inlinés == lib, octet à octet ; et le Workflow ne cible que le namespace `erom-research:`. |
 | `scripts/tests/test_recover_transcript.py` | Unitaires du plan B. |
+| `scripts/tests/grok-deep.test.ts` | Unitaires du CLI grok-deep : frontmatter canonique, slugify, anti-collision `uniqueRunId` (couvre `.runs/` ET les `.md` d'autres moteurs). |
 
 Lancement : `cd scripts && bun test tests/` puis `python3 tests/test_recover_transcript.py`.
