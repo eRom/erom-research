@@ -1,6 +1,6 @@
 ---
 name: agy
-description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans ~/.claude/erom-plugins/researchs/."
+description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
@@ -30,7 +30,7 @@ Si `${CLAUDE_PLUGIN_ROOT}` te parvient non expansé, résous-le : deux niveaux a
 - Chemins ABSOLUS obligatoires : le Workflow et ses subagents tournent dans un cwd différent, et un `~` ou un chemin relatif passé en argument de tool (`scriptPath`, `deepDir`) n'est PAS expansé. Le préflight imprime `WRITE_FILE`, `DEEP_DIR` et `PROJECT` (chemins absolus, `$HOME` expansé) — réutilise ces valeurs littérales telles quelles aux Étapes 4-5, avec les `SCRIPT`/`RENDER` de l'Étape 0.
 
 ```bash
-RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
 BASE="<DATE>-<SLUG>"; N=2
 while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
 mkdir -p "$RESEARCH_DIR/.runs/$BASE"

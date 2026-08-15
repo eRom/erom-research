@@ -40,7 +40,7 @@ function usage(code: number): never {
   grok-deep status [<run_id>|--latest] [--out-dir D]
   grok-deep list   [--out-dir D]
 
-  Défauts : out-dir=~/.claude/erom-plugins/researchs, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s
+  Défauts : out-dir=~/.claude/erom-plugin-artefacts/researchs, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s
   --project <nom> : projet d'origine inscrit au frontmatter (défaut : basename du cwd)`);
   process.exit(code);
 }
@@ -99,7 +99,7 @@ function parseArgs(argv: string[]): { positional: string[]; opts: Opts } {
     else if (a.startsWith("--")) { console.error(`Option inconnue : ${a}`); usage(2); }
     else positional.push(a);
   }
-  if (!opts.outDir) opts.outDir = path.join(os.homedir(), ".claude", "erom-plugins", "researchs");
+  if (!opts.outDir) opts.outDir = path.join(os.homedir(), ".claude", "erom-plugin-artefacts", "researchs");
   opts.outDir = path.resolve(opts.outDir);
   if (!Number.isFinite(opts.budget) || opts.budget < 1 || opts.budget > 1024) {
     console.error("--budget doit être entre 1 et 1024"); process.exit(2);

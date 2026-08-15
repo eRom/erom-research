@@ -1,6 +1,6 @@
 ---
 name: nlm
-description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans ~/.claude/erom-plugins/researchs/."
+description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 user-invocable: true
 allowed-tools: Bash, Read, Agent
 ---
@@ -20,7 +20,7 @@ $ARGUMENTS
 2. Préflight + chemins (UN Bash) - l'échec d'auth se constate en session, pas par une notification d'échec 30 s après le spawn :
    ```bash
    nlm notebook list --json 2>&1 | head -3
-   RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+   RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
    BASE="<DATE>-<SLUG>"; N=2
    while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
    mkdir -p "$RESEARCH_DIR"
@@ -40,7 +40,7 @@ $ARGUMENTS
 
 ```bash
 nlm notebook list
-grep -l "engine: notebooklm" "$HOME"/.claude/erom-plugins/researchs/*.md 2>/dev/null
+grep -l "engine: notebooklm" "$HOME"/.claude/erom-plugin-artefacts/researchs/*.md 2>/dev/null
 ```
 Notebooks côté Google + rapports locaux.
 

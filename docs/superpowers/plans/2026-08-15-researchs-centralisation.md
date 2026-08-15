@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Les 4 moteurs du plugin erom-research écrivent leurs rapports dans le store central `~/.claude/erom-plugins/researchs/` (plat, daté, frontmatter canonique avec `project:`) au lieu de `docs/research/<moteur>/` du projet courant.
+**Goal:** Les 4 moteurs du plugin erom-research écrivent leurs rapports dans le store central `~/.claude/erom-plugin-artefacts/researchs/` (plat, daté, frontmatter canonique avec `project:`) au lieu de `docs/research/<moteur>/` du projet courant.
 
 **Architecture:** Le layout physique porte uniquement la date (tri chronologique au `ls`) ; tous les axes de requête (moteur, projet d'origine) vivent dans le frontmatter YAML, contrat de la future skill `list`. Les artefacts de travail vont dans `researchs/.runs/<nom>/`, gitignorés. Aucune commande git dans les skills (le LaunchAgent nightly `com.erom.backup-config` committe `~/.claude`).
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Chemin central canonique, partout identique : `$HOME/.claude/erom-plugins/researchs` (dans les scripts TS : `path.join(os.homedir(), ".claude", "erom-plugins", "researchs")`).
+- Chemin central canonique, partout identique : `$HOME/.claude/erom-plugin-artefacts/researchs` (dans les scripts TS : `path.join(os.homedir(), ".claude", "erom-plugin-artefacts", "researchs")`).
 - Frontmatter canonique, 5 champs obligatoires : `title`, `type: research`, `engine`, `project`, `created`. Ordre d'émission : `title`, `type`, `source_tool`, `engine`, `project`, puis champs par moteur, puis `created`, `sensitivity: internal`.
 - Aucune commande git dans les skills ni dans grok-deep (spec, décision 5).
 - Tests via `bun test` uniquement (jamais npm/npx ; un hook PreToolUse les bloque). Exécuter depuis `plugin/scripts/`.
@@ -20,7 +20,7 @@
 - IMPORTANT, hook anti-cadratin : un hook PreToolUse bloque tout Write/Edit dont le texte COMPOSÉ contient un tiret cadratin (U+2014). Les SKILL.md agy et grok en contiennent déjà : ne JAMAIS réécrire ces fichiers en entier. Faire uniquement les Edits chirurgicaux prescrits ci-dessous, dont les old_string et new_string sont garantis sans cadratin. Ne pas « corriger » les cadratins existants hors périmètre.
 - Messages de commit : convention du repo, français sans accents, types `feat(research):`, `docs:`, `chore:`.
 - Le répertoire de travail du repo est `/Users/recarnot/dev/erom-agence-deep-research` ; le plugin vit sous `plugin/`.
-- Ne PAS committer dans `~/.claude` (repo distinct, géré par le nightly). Seul fichier créé hors repo : `~/.claude/erom-plugins/researchs/.gitignore` (Task 3), plus des fixtures jetables.
+- Ne PAS committer dans `~/.claude` (repo distinct, géré par le nightly). Seul fichier créé hors repo : `~/.claude/erom-plugin-artefacts/researchs/.gitignore` (Task 3), plus des fixtures jetables.
 
 ---
 
@@ -95,7 +95,7 @@ git commit -m "feat(research): champ project dans le frontmatter du rendu"
 
 **Interfaces:**
 - Consumes: rien.
-- Produces: `grok-deep` exporte `buildFrontmatter(query: string, project: string, createdIso: string): string`, `slugify(s: string): string` et `uniqueRunId(outDir: string, slug: string): string` ; défaut `--out-dir` = `~/.claude/erom-plugins/researchs` ; nouveau flag `--project <nom>` (défaut `path.basename(process.cwd())`) ; le rapport final commence par le frontmatter canonique ; `uniqueRunId` évite aussi les collisions avec un `<id>.md` existant (rapport d'un autre moteur). La Task 4 (SKILL.md grok) s'appuie sur `--out-dir`, `--project` et sur les events JSON existants (`status_path`, `report_path`, chemins absolus), qui ne changent pas.
+- Produces: `grok-deep` exporte `buildFrontmatter(query: string, project: string, createdIso: string): string`, `slugify(s: string): string` et `uniqueRunId(outDir: string, slug: string): string` ; défaut `--out-dir` = `~/.claude/erom-plugin-artefacts/researchs` ; nouveau flag `--project <nom>` (défaut `path.basename(process.cwd())`) ; le rapport final commence par le frontmatter canonique ; `uniqueRunId` évite aussi les collisions avec un `<id>.md` existant (rapport d'un autre moteur). La Task 4 (SKILL.md grok) s'appuie sur `--out-dir`, `--project` et sur les events JSON existants (`status_path`, `report_path`, chemins absolus), qui ne changent pas.
 
 - [x] **Step 1: Rendre le CLI importable (garde d'exécution)**
 
@@ -261,7 +261,7 @@ b) `parseArgs`. Edit : old_string `    else if (a === "--run-id") opts.runId = n
     else if (a === "--project") opts.project = next();
 ```
 
-c) Défaut out-dir. Edit : old_string `  if (!opts.outDir) opts.outDir = path.join(process.cwd(), "docs", "research", "grok");` , new_string `  if (!opts.outDir) opts.outDir = path.join(os.homedir(), ".claude", "erom-plugins", "researchs");`.
+c) Défaut out-dir. Edit : old_string `  if (!opts.outDir) opts.outDir = path.join(process.cwd(), "docs", "research", "grok");` , new_string `  if (!opts.outDir) opts.outDir = path.join(os.homedir(), ".claude", "erom-plugin-artefacts", "researchs");`.
 
 d) `usage()`. Edit : old_string :
 
@@ -272,7 +272,7 @@ d) `usage()`. Edit : old_string :
 new_string :
 
 ```ts
-  Défauts : out-dir=~/.claude/erom-plugins/researchs, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s
+  Défauts : out-dir=~/.claude/erom-plugin-artefacts/researchs, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s
   --project <nom> : projet d'origine inscrit au frontmatter (défaut : basename du cwd)`);
 ```
 
@@ -335,7 +335,7 @@ git commit -m "feat(research): grok-deep normalise, frontmatter canonique et out
 ### Task 3: Socle central + skills agy et claude
 
 **Files:**
-- Create: `~/.claude/erom-plugins/researchs/.gitignore` (hors repo, non committé ici : le nightly de `~/.claude` s'en charge)
+- Create: `~/.claude/erom-plugin-artefacts/researchs/.gitignore` (hors repo, non committé ici : le nightly de `~/.claude` s'en charge)
 - Modify: `plugin/skills/agy/SKILL.md` (description ligne 3, texte ligne 30, préflight lignes 32-38, meta ligne 90)
 - Modify: `plugin/skills/claude/SKILL.md` (description ligne 3, texte ligne 30, préflight lignes 33-38, meta ligne 68)
 
@@ -347,7 +347,7 @@ RAPPEL du Global Constraint anti-cadratin : ces deux SKILL.md contiennent des ti
 
 - [x] **Step 1: Créer le .gitignore du store central**
 
-Écrire `~/.claude/erom-plugins/researchs/.gitignore` avec ce contenu exact :
+Écrire `~/.claude/erom-plugin-artefacts/researchs/.gitignore` avec ce contenu exact :
 
 ```
 .runs/
@@ -368,7 +368,7 @@ echo "DEEP_DIR=$(pwd)/docs/research/agy/.deep/<DATE>-<SLUG>"
 new_string :
 
 ```bash
-RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
 BASE="<DATE>-<SLUG>"; N=2
 while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
 mkdir -p "$RESEARCH_DIR/.runs/$BASE"
@@ -418,7 +418,7 @@ Sauve dans docs/research/agy/."
 new_string :
 
 ```
-Sauve dans ~/.claude/erom-plugins/researchs/."
+Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 ```
 
 - [x] **Step 4: Mêmes changements pour claude**
@@ -436,7 +436,7 @@ echo "DEEP_DIR=$(pwd)/docs/research/claude/.deep/<DATE>-<SLUG>"
 new_string :
 
 ```bash
-RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
 BASE="<DATE>-<SLUG>"; N=2
 while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
 mkdir -p "$RESEARCH_DIR/.runs/$BASE"
@@ -480,7 +480,7 @@ Sauve dans docs/research/claude/."
 new_string :
 
 ```
-Sauve dans ~/.claude/erom-plugins/researchs/."
+Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 ```
 
 - [x] **Step 5: Vérification bout-en-bout sans réseau ni quota**
@@ -488,14 +488,14 @@ Sauve dans ~/.claude/erom-plugins/researchs/."
 Exécuter le préflight réel puis un rendu sur fixture (remplacer 2026-08-15 par la date du jour) :
 
 ```bash
-RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
 BASE="2026-08-15-fixture-verification"; N=2
 while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="2026-08-15-fixture-verification-$N"; N=$((N+1)); done
 mkdir -p "$RESEARCH_DIR/.runs/$BASE"
 printf '%s\n' '{"report":{"tldr":["ok"],"findings":[],"coverage":{"anglesCompleted":1,"anglesFailed":0},"conclusion":{"recommendation":"R","overallConfidence":"high"},"references":[]},"meta":{"title":"Fixture","depth":"L","rounds":1,"converged":true,"date":"2026-08-15","sourceTool":"erom-research:claude","engine":"claude","project":"erom-agence-deep-research"}}' > "$RESEARCH_DIR/.runs/$BASE/_render.json"
 node plugin/scripts/render-report.mjs "$RESEARCH_DIR/.runs/$BASE/_render.json" > "$RESEARCH_DIR/$BASE.md"
 head -12 "$RESEARCH_DIR/$BASE.md"
-git -C ~/.claude status --porcelain -- erom-plugins/researchs/
+git -C ~/.claude status --porcelain -- erom-plugin-artefacts/researchs/
 ```
 
 Expected: le head montre le frontmatter avec `title`, `type`, `source_tool`, `engine`, `project: erom-agence-deep-research`, `depth`, `rounds`, `converged`, `created`, `sensitivity` ; le git status montre le `.gitignore` et le `.md` de fixture mais AUCUN chemin sous `.runs/` (gitignore actif). Nettoyage : `trash "$RESEARCH_DIR/$BASE.md" "$RESEARCH_DIR/.runs/$BASE"`.
@@ -525,13 +525,13 @@ RAPPEL anti-cadratin : ce fichier contient des tirets cadratins. Edits chirurgic
 Trois Edits dans `plugin/skills/grok/SKILL.md` :
 
 a) old_string : `"<CLI>" run "<sujet>" --out-dir "$(pwd)/docs/research/grok" [--budget N]`
-   new_string : `"<CLI>" run "<sujet>" --out-dir "$HOME/.claude/erom-plugins/researchs" --project "$(basename "$(pwd)")" [--budget N]`
+   new_string : `"<CLI>" run "<sujet>" --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs" --project "$(basename "$(pwd)")" [--budget N]`
 
 b) old_string : `"<CLI>" status --latest --out-dir "$(pwd)/docs/research/grok"`
-   new_string : `"<CLI>" status --latest --out-dir "$HOME/.claude/erom-plugins/researchs"`
+   new_string : `"<CLI>" status --latest --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"`
 
 c) old_string : `"<CLI>" list --out-dir "$(pwd)/docs/research/grok"`
-   new_string : `"<CLI>" list --out-dir "$HOME/.claude/erom-plugins/researchs"`
+   new_string : `"<CLI>" list --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"`
 
 - [x] **Step 2: Lecture des résultats par les chemins de l'enveloppe JSON**
 
@@ -558,18 +558,18 @@ Read du rapport `docs/research/grok/<run_id>.md`
 new_string :
 
 ```
-Read du rapport au chemin `report_path` du status.json (absolu, sous ~/.claude/erom-plugins/researchs/)
+Read du rapport au chemin `report_path` du status.json (absolu, sous ~/.claude/erom-plugin-artefacts/researchs/)
 ```
 
 - [x] **Step 3: Description**
 
 Edit : old_string : `rapport avec coverage explicite sauvé dans docs/research/grok/.`
-new_string : `rapport avec coverage explicite sauvé dans ~/.claude/erom-plugins/researchs/.`
+new_string : `rapport avec coverage explicite sauvé dans ~/.claude/erom-plugin-artefacts/researchs/.`
 
 - [x] **Step 4: Vérification list sur le store réel**
 
-Run: `plugin/scripts/grok-deep list --out-dir "$HOME/.claude/erom-plugins/researchs"; echo "exit=$?"`
-Expected: `Aucun run sous /Users/recarnot/.claude/erom-plugins/researchs/.runs` (ou la liste des runs si des fixtures traînent) et `exit=0` : la commande de la skill est valide contre le store central sans lancer de run (zéro quota).
+Run: `plugin/scripts/grok-deep list --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"; echo "exit=$?"`
+Expected: `Aucun run sous /Users/recarnot/.claude/erom-plugin-artefacts/researchs/.runs` (ou la liste des runs si des fixtures traînent) et `exit=0` : la commande de la skill est valide contre le store central sans lancer de run (zéro quota).
 
 - [x] **Step 5: Commit**
 
@@ -608,7 +608,7 @@ new_string :
 
 ```bash
    nlm notebook list --json 2>&1 | head -3
-   RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+   RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
    BASE="<DATE>-<SLUG>"; N=2
    while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
    mkdir -p "$RESEARCH_DIR"
@@ -633,10 +633,10 @@ La mission fournit : `<sujet>`, `REPORT_PATH=<OUT>` (littéral, absolu) et `PROJ
 - [x] **Step 3: Mode list + description**
 
 a) Edit : old_string : `ls docs/research/nlm/ 2>/dev/null`
-   new_string : `grep -l "engine: notebooklm" "$HOME"/.claude/erom-plugins/researchs/*.md 2>/dev/null`
+   new_string : `grep -l "engine: notebooklm" "$HOME"/.claude/erom-plugin-artefacts/researchs/*.md 2>/dev/null`
 
 b) Edit : old_string : `Sauve dans docs/research/nlm/."`
-   new_string : `Sauve dans ~/.claude/erom-plugins/researchs/."`
+   new_string : `Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."`
 
 - [x] **Step 4: Frontmatter canonique de notebook-creator**
 
@@ -723,14 +723,14 @@ Tous les rapports atterrissent sous `docs/research/<moteur>/` du projet courant 
 et les lignes de layout qui suivent, par :
 
 ```
-Tous les rapports atterrissent dans le store central `~/.claude/erom-plugins/researchs/` (plat, un fichier par recherche, projet d'origine en frontmatter `project:`) :
+Tous les rapports atterrissent dans le store central `~/.claude/erom-plugin-artefacts/researchs/` (plat, un fichier par recherche, projet d'origine en frontmatter `project:`) :
 ```
 
 avec le nouveau bloc de layout :
 
 ```
-~/.claude/erom-plugins/researchs/<date>-<slug>.md      rapport (frontmatter : title, type, source_tool, engine, project, created, sensitivity + champs moteur)
-~/.claude/erom-plugins/researchs/.runs/<date>-<slug>/  artefacts de travail, non versionnés (ex-.deep agy/claude ; status.json, worker.log grok)
+~/.claude/erom-plugin-artefacts/researchs/<date>-<slug>.md      rapport (frontmatter : title, type, source_tool, engine, project, created, sensitivity + champs moteur)
+~/.claude/erom-plugin-artefacts/researchs/.runs/<date>-<slug>/  artefacts de travail, non versionnés (ex-.deep agy/claude ; status.json, worker.log grok)
 ```
 
 (Conserver le style de fence et l'indentation du bloc existant. Si les lignes actuelles portent des commentaires par moteur, les remplacer par ces deux lignes : le layout n'est plus par moteur.)
@@ -738,7 +738,7 @@ avec le nouveau bloc de layout :
 - [x] **Step 2: plugin.json**
 
 a) Edit : old_string : `"version": "0.4.0",` , new_string : `"version": "0.5.0",`.
-b) Edit : old_string : `Rapports cités sauvés dans docs/research/<moteur>/.` , new_string : `Rapports cités centralisés dans ~/.claude/erom-plugins/researchs/ (frontmatter avec projet d'origine).`.
+b) Edit : old_string : `Rapports cités sauvés dans docs/research/<moteur>/.` , new_string : `Rapports cités centralisés dans ~/.claude/erom-plugin-artefacts/researchs/ (frontmatter avec projet d'origine).`.
 
 - [x] **Step 3: Mémoire projet**
 
@@ -753,7 +753,7 @@ a) Edit : old_string :
 new_string :
 
 ```
-**Sorties** (0.5.0) : store central `~/.claude/erom-plugins/researchs/` (plat, `<date>-<slug>.md`, frontmatter canonique title/type/engine/project/created ; artefacts sous `.runs/`, gitignorés ; versionnement par le nightly de `~/.claude`, aucune commande git dans les skills). Plus rien dans le projet courant.
+**Sorties** (0.5.0) : store central `~/.claude/erom-plugin-artefacts/researchs/` (plat, `<date>-<slug>.md`, frontmatter canonique title/type/engine/project/created ; artefacts sous `.runs/`, gitignorés ; versionnement par le nightly de `~/.claude`, aucune commande git dans les skills). Plus rien dans le projet courant.
 ```
 
 b) Edit : old_string : `_Mis à jour : 2026-08-12_` , new_string : `_Mis à jour : 2026-08-15_` (adapter à la date du jour d'exécution).
