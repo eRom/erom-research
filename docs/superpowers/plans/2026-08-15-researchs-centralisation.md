@@ -34,7 +34,7 @@
 - Consumes: rien (première task).
 - Produces: `renderReportMarkdown(report, meta)` émet la ligne `project: <valeur>` dans le frontmatter quand `meta.project` est défini, entre `engine` et `depth` ; aucune ligne sinon. La Task 3 (skills agy/claude) s'appuie sur ce comportement via `meta.project`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Ajouter à la fin de `plugin/scripts/tests/deep-research-lib.test.mjs` :
 
@@ -49,12 +49,12 @@ test('renderReportMarkdown: project émis si fourni, absent sinon', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd plugin/scripts && bun test tests/deep-research-lib.test.mjs`
 Expected: FAIL, le nouveau test échoue sur `toContain('project: mediacenter')` (les tests existants restent verts).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Dans `plugin/scripts/deep-research-lib.mjs`, fonction `renderReportMarkdown`, Edit avec :
 
@@ -73,12 +73,12 @@ new_string :
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,
 ```
 
-- [ ] **Step 4: Run the full suite to verify it passes**
+- [x] **Step 4: Run the full suite to verify it passes**
 
 Run: `cd plugin/scripts && bun test`
 Expected: PASS, y compris `deep-research-sync.test.mjs` (`renderReportMarkdown` n'est PAS inliné dans `deep-research.js`, le commentaire du sync test le confirme : aucune modification de `deep-research.js` n'est nécessaire).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugin/scripts/deep-research-lib.mjs plugin/scripts/tests/deep-research-lib.test.mjs
@@ -97,7 +97,7 @@ git commit -m "feat(research): champ project dans le frontmatter du rendu"
 - Consumes: rien.
 - Produces: `grok-deep` exporte `buildFrontmatter(query: string, project: string, createdIso: string): string`, `slugify(s: string): string` et `uniqueRunId(outDir: string, slug: string): string` ; défaut `--out-dir` = `~/.claude/erom-plugins/researchs` ; nouveau flag `--project <nom>` (défaut `path.basename(process.cwd())`) ; le rapport final commence par le frontmatter canonique ; `uniqueRunId` évite aussi les collisions avec un `<id>.md` existant (rapport d'un autre moteur). La Task 4 (SKILL.md grok) s'appuie sur `--out-dir`, `--project` et sur les events JSON existants (`status_path`, `report_path`, chemins absolus), qui ne changent pas.
 
-- [ ] **Step 1: Rendre le CLI importable (garde d'exécution)**
+- [x] **Step 1: Rendre le CLI importable (garde d'exécution)**
 
 Dans `plugin/scripts/grok-deep`, le dispatch main est en bas de fichier (lignes 351-368), au niveau module. L'envelopper dans une garde. Edit avec :
 
@@ -151,7 +151,7 @@ if (import.meta.main) {
 
 Vérifié le 2026-08-15 en Bun 1.3.5 : un fichier sans extension avec shebang s'importe depuis un test (`import { x } from "../grok-deep"`), `import.meta.main` est `false` à l'import et `true` en exécution directe, et le top-level `await` dans le bloc `if` est valide.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Créer `plugin/scripts/tests/grok-deep.test.ts` :
 
@@ -194,12 +194,12 @@ test("uniqueRunId: collision sur .runs/ ET sur un .md existant d'un autre moteur
 
 (Le `fs.rmSync` sur un mkdtemp du tmpdir système est le nettoyage standard d'un test, pas une suppression de fichier utilisateur.)
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `cd plugin/scripts && bun test tests/grok-deep.test.ts`
 Expected: FAIL, `buildFrontmatter` n'existe pas ; `slugify`/`uniqueRunId` ne sont pas exportés.
 
-- [ ] **Step 4: Implémenter les exports et buildFrontmatter**
+- [x] **Step 4: Implémenter les exports et buildFrontmatter**
 
 Dans `plugin/scripts/grok-deep` :
 
@@ -248,7 +248,7 @@ export function buildFrontmatter(query: string, project: string, createdIso: str
 }
 ```
 
-- [ ] **Step 5: Défaut out-dir central, flag --project, usage()**
+- [x] **Step 5: Défaut out-dir central, flag --project, usage()**
 
 Toujours dans `plugin/scripts/grok-deep` :
 
@@ -276,7 +276,7 @@ new_string :
   --project <nom> : projet d'origine inscrit au frontmatter (défaut : basename du cwd)`);
 ```
 
-- [ ] **Step 6: Frontmatter au rapatriement du rapport**
+- [x] **Step 6: Frontmatter au rapatriement du rapport**
 
 Dans `cmdRun`, Edit avec :
 
@@ -313,17 +313,17 @@ new_string :
 
 (Le match du statut se fait sur `raw` AVANT préfixage : le frontmatter ne doit pas pousser la ligne `**Status:**` hors de la fenêtre des 500 premiers caractères. Note : `cmdStart` re-forwarde tel quel ses arguments vers `run`, donc `--project` suit, et sans flag le run détaché hérite du cwd, donc du même basename.)
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [x] **Step 7: Run tests to verify they pass**
 
 Run: `cd plugin/scripts && bun test`
 Expected: PASS (les 3 nouveaux tests + toute la suite existante).
 
-- [ ] **Step 8: Vérifier que le CLI reste exécutable**
+- [x] **Step 8: Vérifier que le CLI reste exécutable**
 
 Run: `plugin/scripts/grok-deep --help; plugin/scripts/grok-deep list --out-dir "/tmp/grok-deep-empty-$$"; echo "exit=$?"`
 Expected: l'usage s'affiche avec les nouveaux défauts et le flag `--project`, puis `Aucun run sous /tmp/grok-deep-empty-<pid>/.runs` et `exit=0`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add plugin/scripts/grok-deep plugin/scripts/tests/grok-deep.test.ts
@@ -345,7 +345,7 @@ git commit -m "feat(research): grok-deep normalise, frontmatter canonique et out
 
 RAPPEL du Global Constraint anti-cadratin : ces deux SKILL.md contiennent des tirets cadratins ailleurs. Ne faire QUE les Edits ci-dessous (old/new sans cadratin), jamais de réécriture complète du fichier.
 
-- [ ] **Step 1: Créer le .gitignore du store central**
+- [x] **Step 1: Créer le .gitignore du store central**
 
 Écrire `~/.claude/erom-plugins/researchs/.gitignore` avec ce contenu exact :
 
@@ -353,7 +353,7 @@ RAPPEL du Global Constraint anti-cadratin : ces deux SKILL.md contiennent des ti
 .runs/
 ```
 
-- [ ] **Step 2: Préflight agy**
+- [x] **Step 2: Préflight agy**
 
 Dans `plugin/skills/agy/SKILL.md`, Edit avec :
 
@@ -379,7 +379,7 @@ echo "PROJECT=$(basename "$(pwd)")"
 
 (Les deux lignes suivantes du bloc, `test -f ...` et `command -v agy ...`, restent inchangées. Boucle anti-collision vérifiée le 2026-08-15 : `sujet`, puis `sujet-2`, puis `sujet-3` sur fichiers préexistants.)
 
-- [ ] **Step 3: Texte des chemins, meta et description agy**
+- [x] **Step 3: Texte des chemins, meta et description agy**
 
 Trois Edits chirurgicaux dans `plugin/skills/agy/SKILL.md` (chaque old_string apparaît exactement une fois ; les backticks des blocs ci-dessous sont littéraux, à reprendre tels quels) :
 
@@ -421,7 +421,7 @@ new_string :
 Sauve dans ~/.claude/erom-plugins/researchs/."
 ```
 
-- [ ] **Step 4: Mêmes changements pour claude**
+- [x] **Step 4: Mêmes changements pour claude**
 
 Quatre Edits dans `plugin/skills/claude/SKILL.md` :
 
@@ -483,7 +483,7 @@ new_string :
 Sauve dans ~/.claude/erom-plugins/researchs/."
 ```
 
-- [ ] **Step 5: Vérification bout-en-bout sans réseau ni quota**
+- [x] **Step 5: Vérification bout-en-bout sans réseau ni quota**
 
 Exécuter le préflight réel puis un rendu sur fixture (remplacer 2026-08-15 par la date du jour) :
 
@@ -500,7 +500,7 @@ git -C ~/.claude status --porcelain -- erom-plugins/researchs/
 
 Expected: le head montre le frontmatter avec `title`, `type`, `source_tool`, `engine`, `project: erom-agence-deep-research`, `depth`, `rounds`, `converged`, `created`, `sensitivity` ; le git status montre le `.gitignore` et le `.md` de fixture mais AUCUN chemin sous `.runs/` (gitignore actif). Nettoyage : `trash "$RESEARCH_DIR/$BASE.md" "$RESEARCH_DIR/.runs/$BASE"`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add plugin/skills/agy/SKILL.md plugin/skills/claude/SKILL.md
@@ -520,7 +520,7 @@ git commit -m "feat(research): skills agy et claude ecrivent au store central av
 
 RAPPEL anti-cadratin : ce fichier contient des tirets cadratins. Edits chirurgicaux uniquement, jamais de réécriture complète.
 
-- [ ] **Step 1: Commandes vers le store central**
+- [x] **Step 1: Commandes vers le store central**
 
 Trois Edits dans `plugin/skills/grok/SKILL.md` :
 
@@ -533,7 +533,7 @@ b) old_string : `"<CLI>" status --latest --out-dir "$(pwd)/docs/research/grok"`
 c) old_string : `"<CLI>" list --out-dir "$(pwd)/docs/research/grok"`
    new_string : `"<CLI>" list --out-dir "$HOME/.claude/erom-plugins/researchs"`
 
-- [ ] **Step 2: Lecture des résultats par les chemins de l'enveloppe JSON**
+- [x] **Step 2: Lecture des résultats par les chemins de l'enveloppe JSON**
 
 Deux Edits par fragments (les segments à cadratin de ces lignes restent en place ; backticks littéraux) :
 
@@ -561,17 +561,17 @@ new_string :
 Read du rapport au chemin `report_path` du status.json (absolu, sous ~/.claude/erom-plugins/researchs/)
 ```
 
-- [ ] **Step 3: Description**
+- [x] **Step 3: Description**
 
 Edit : old_string : `rapport avec coverage explicite sauvé dans docs/research/grok/.`
 new_string : `rapport avec coverage explicite sauvé dans ~/.claude/erom-plugins/researchs/.`
 
-- [ ] **Step 4: Vérification list sur le store réel**
+- [x] **Step 4: Vérification list sur le store réel**
 
 Run: `plugin/scripts/grok-deep list --out-dir "$HOME/.claude/erom-plugins/researchs"; echo "exit=$?"`
 Expected: `Aucun run sous /Users/recarnot/.claude/erom-plugins/researchs/.runs` (ou la liste des runs si des fixtures traînent) et `exit=0` : la commande de la skill est valide contre le store central sans lancer de run (zéro quota).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugin/skills/grok/SKILL.md
@@ -592,7 +592,7 @@ git commit -m "feat(research): skill grok pointe le store central, chemins via e
 
 RAPPEL anti-cadratin : ces fichiers contiennent des tirets cadratins. Edits chirurgicaux uniquement.
 
-- [ ] **Step 1: Préflight nlm**
+- [x] **Step 1: Préflight nlm**
 
 Dans `plugin/skills/nlm/SKILL.md`, Edit avec :
 
@@ -616,7 +616,7 @@ new_string :
    echo "PROJECT=$(basename "$(pwd)")"
 ```
 
-- [ ] **Step 2: Mission du subagent**
+- [x] **Step 2: Mission du subagent**
 
 Edit (backticks littéraux) : old_string :
 
@@ -630,7 +630,7 @@ new_string :
 La mission fournit : `<sujet>`, `REPORT_PATH=<OUT>` (littéral, absolu) et `PROJECT=<PROJECT>`.
 ```
 
-- [ ] **Step 3: Mode list + description**
+- [x] **Step 3: Mode list + description**
 
 a) Edit : old_string : `ls docs/research/nlm/ 2>/dev/null`
    new_string : `grep -l "engine: notebooklm" "$HOME"/.claude/erom-plugins/researchs/*.md 2>/dev/null`
@@ -638,7 +638,7 @@ a) Edit : old_string : `ls docs/research/nlm/ 2>/dev/null`
 b) Edit : old_string : `Sauve dans docs/research/nlm/."`
    new_string : `Sauve dans ~/.claude/erom-plugins/researchs/."`
 
-- [ ] **Step 4: Frontmatter canonique de notebook-creator**
+- [x] **Step 4: Frontmatter canonique de notebook-creator**
 
 Dans `plugin/agents/notebook-creator.md`, section « 4. Rapport final », Edit avec :
 
@@ -685,12 +685,12 @@ new_string :
 `{PROJECT}` vient de la mission (`PROJECT=...`) ; si la mission ne le fournit pas, écris `project: unknown`. Sans REPORT_PATH dans la mission : saute cette étape, le fichier mémoire de l'étape 5 fait foi.
 ```
 
-- [ ] **Step 5: Balayage de cohérence**
+- [x] **Step 5: Balayage de cohérence**
 
 Run: `grep -n "docs/research" plugin/skills/nlm/SKILL.md plugin/agents/notebook-creator.md; echo "exit=$?"`
 Expected: aucune occurrence, `exit=1`. La mention « notebook_id + URL (frontmatter) » au point 5 de la skill reste vraie avec le nouveau template : aucune modification.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add plugin/skills/nlm/SKILL.md plugin/agents/notebook-creator.md
@@ -710,7 +710,7 @@ git commit -m "feat(research): skill nlm au store central, frontmatter canonique
 - Consumes: l'état final des Tasks 1-5.
 - Produces: rien (task terminale).
 
-- [ ] **Step 1: README, bloc layout**
+- [x] **Step 1: README, bloc layout**
 
 Lire `plugin/README.md` lignes 45-60 pour voir le bloc exact, puis remplacer la phrase d'intro et les 4 lignes de layout :
 
@@ -735,12 +735,12 @@ avec le nouveau bloc de layout :
 
 (Conserver le style de fence et l'indentation du bloc existant. Si les lignes actuelles portent des commentaires par moteur, les remplacer par ces deux lignes : le layout n'est plus par moteur.)
 
-- [ ] **Step 2: plugin.json**
+- [x] **Step 2: plugin.json**
 
 a) Edit : old_string : `"version": "0.4.0",` , new_string : `"version": "0.5.0",`.
 b) Edit : old_string : `Rapports cités sauvés dans docs/research/<moteur>/.` , new_string : `Rapports cités centralisés dans ~/.claude/erom-plugins/researchs/ (frontmatter avec projet d'origine).`.
 
-- [ ] **Step 3: Mémoire projet**
+- [x] **Step 3: Mémoire projet**
 
 Dans `_memory_/architecture.md` :
 
@@ -758,7 +758,7 @@ new_string :
 
 b) Edit : old_string : `_Mis à jour : 2026-08-12_` , new_string : `_Mis à jour : 2026-08-15_` (adapter à la date du jour d'exécution).
 
-- [ ] **Step 4: Balayage final**
+- [x] **Step 4: Balayage final**
 
 Run: `grep -rn "docs/research" plugin/`
 Expected: AUCUNE occurrence dans `plugin/` (skills, agents, scripts, README, manifeste). Les occurrences restantes dans `docs/superpowers/` (spec, plans) et `_memory_/gotchas.md` ou `patterns.md` sont historiques et hors périmètre ; si `gotchas.md`/`patterns.md`/`key-files.md` mentionnent un chemin de sortie devenu faux, mettre à jour la ligne concernée dans le même esprit que architecture.md.
@@ -766,7 +766,7 @@ Expected: AUCUNE occurrence dans `plugin/` (skills, agents, scripts, README, man
 Run: `cd plugin/scripts && bun test`
 Expected: PASS, suite complète.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugin/README.md plugin/.claude-plugin/plugin.json _memory_/
