@@ -23,6 +23,8 @@ Destination : `$HOME/.claude/erom-plugins/researchs/`. Le toplevel git est `~/.c
    **Battu :** artefacts laissés dans le projet de lancement (recovery dépendant du projet) ; artefacts versionnés (volume pour une valeur décroissante).
 4. **Pas de migration de l'existant.** Seul le flux futur alimente le central ; les anciens `docs/research/` restent où ils sont.
    **Battu :** script one-shot de rapatriement.
+5. **Aucune commande git dans les skills.** Le versionnement du central est délégué au service nightly existant qui committe `~/.claude` chaque soir (`com.erom.backup-config`, commits « chore(backup): instantané du <date> », vérifié dans le log le 2026-08-15).
+   **Battu :** commit ciblé par la skill en fin de run (superflu, le service couvre déjà ; un point de défaillance git de moins dans les skills).
 
 ## Layout cible
 
@@ -78,10 +80,6 @@ sensitivity: internal
 
 **Nouveau fichier** : `~/.claude/erom-plugins/researchs/.gitignore` contenant `.runs/`.
 
-## Commit du rapport (défaut proposé, à valider)
-
-Sans commit, « sous git » reste une potentialité : les rapports s'accumulent en untracked dans `~/.claude`. Défaut proposé : en fin de run réussi, la skill fait un commit **ciblé** du seul rapport produit (`git -C ~/.claude add <fichier> && git -C ~/.claude commit -m "research(<engine>): <slug>"`). Jamais de push, jamais de `add -A` (le repo `~/.claude` porte souvent d'autres modifs en cours).
-
 ## Hors périmètre
 
 - La skill `list` elle-même (chantier suivant ; cette spec fixe son contrat d'entrée).
@@ -92,7 +90,7 @@ Sans commit, « sous git » reste une potentialité : les rapports s'accumulent 
 ## Critères de succès
 
 1. Un run de chaque moteur écrit son rapport dans `~/.claude/erom-plugins/researchs/<DATE>-<SLUG>.md` avec les 5 champs obligatoires du frontmatter, dont `project`.
-2. Après un run, `git -C ~/.claude status` ne montre aucun artefact de travail (seul le rapport, ou rien si commit auto validé).
+2. Après un run, `git -C ~/.claude status` ne montre aucun artefact de travail : seul le rapport apparaît, en untracked, pris en charge par le backup nightly (décision 5).
 3. Le rapport grok est nommé `<DATE>-<SLUG>.md` et porte le frontmatter canonique.
 4. Plus aucune écriture dans `docs/research/` du projet courant par les 4 skills.
 5. Tests bun de la lib verts, avec le nouveau champ `project` couvert.
