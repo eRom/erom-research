@@ -150,3 +150,12 @@ test('renderReportMarkdown signale les claims non vérifiables', () => {
     { title: 'T', depth: 'L', rounds: 1, converged: false, date: '2026-08-12' })
   expect(md).toContain('non vérifiables : 2')
 })
+
+test('renderReportMarkdown: project émis si fourni, absent sinon', () => {
+  const report = { tldr: [], findings: [], coverage: {}, conclusion: { recommendation: 'R', overallConfidence: 'high' }, references: [] }
+  const base = { title: 'T', depth: 'L', rounds: 1, converged: true, date: '2026-08-15' }
+  const md = renderReportMarkdown(report, { ...base, project: 'mediacenter' })
+  expect(md).toContain('project: mediacenter')
+  expect(md.indexOf('project: mediacenter')).toBeLessThan(md.indexOf('depth: L'))
+  expect(renderReportMarkdown(report, base)).not.toContain('project:')
+})

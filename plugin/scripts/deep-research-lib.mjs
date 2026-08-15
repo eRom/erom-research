@@ -148,6 +148,7 @@ export function renderReportMarkdown(report, meta) {
     '---', `title: "${meta.title}"`, 'type: research',
     `source_tool: ${meta.sourceTool || 'erom-research:agy'}`,
     ...(meta.engine ? [`engine: ${meta.engine}`] : []),
+    ...(meta.project ? [`project: ${meta.project}`] : []),
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,
     `created: ${meta.date}`, 'sensitivity: internal', '---', '',
   ].join('\n'))
