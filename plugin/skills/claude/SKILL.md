@@ -1,6 +1,6 @@
 ---
 name: claude
-description: "Deep research multi-rounds via subagents Claude natifs (WebSearch/WebFetch, sans navigateur externe) : matrice de preuves + plan que tu valides, angles browsés en parallèle par des subagents `erom-research:claude-run`, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse. Quatrième moteur du plugin, sans binaire ni auth externe : consomme uniquement le quota Anthropic de la session. Triggers : /erom-research:claude, 'deep claude', 'deep research native', 'recherche multi-rounds sans agy'. Sauve dans docs/research/claude/."
+description: "Deep research multi-rounds via subagents Claude natifs (WebSearch/WebFetch, sans navigateur externe) : matrice de preuves + plan que tu valides, angles browsés en parallèle par des subagents `erom-research:claude-run`, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse. Quatrième moteur du plugin, sans binaire ni auth externe : consomme uniquement le quota Anthropic de la session. Triggers : /erom-research:claude, 'deep claude', 'deep research native', 'recherche multi-rounds sans agy'. Sauve dans ~/.claude/erom-plugins/researchs/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
@@ -27,13 +27,17 @@ Si `${CLAUDE_PLUGIN_ROOT}` te parvient non expansé, résous-le : deux niveaux a
 - `--yes` saute le plan gate (Étape 3).
 - Retire ces flags de `$ARGUMENTS` ; le reste trimé = `<sujet>`. Vide → demande « Quoi deep-rechercher ? » et stop.
 - `SLUG` = sujet lowercased, non-alphanumérique → `-`, répétitions réduites, 60 chars. `DATE` = aujourd'hui ISO.
-- Chemins ABSOLUS obligatoires : le Workflow et ses subagents tournent dans un cwd différent, et un `~` ou un chemin relatif passé en argument de tool (`scriptPath`, `deepDir`) n'est PAS expansé. Le préflight imprime `WRITE_FILE` et `DEEP_DIR`, réutilise ces valeurs littérales telles quelles aux Étapes 4-5, avec les `SCRIPT`/`RENDER` de l'Étape 0.
+- Chemins ABSOLUS obligatoires : le Workflow et ses subagents tournent dans un cwd différent, et un `~` ou un chemin relatif passé en argument de tool (`scriptPath`, `deepDir`) n'est PAS expansé. Le préflight imprime `WRITE_FILE`, `DEEP_DIR` et `PROJECT` (chemins absolus, `$HOME` expansé), réutilise ces valeurs littérales telles quelles aux Étapes 4-5, avec les `SCRIPT`/`RENDER` de l'Étape 0.
 - `DEEP_DIR` ne recevra que `_render.json` (Étape 5) en mode claude : `claude-run` n'a que `WebSearch` et `WebFetch` comme tools, il ne peut rien écrire sur disque, contrairement à `agy-run` qui y dépose un markdown par angle. Le `mkdir -p` ci-dessous reste nécessaire pour que `_render.json` ait un dossier où atterrir.
 
 ```bash
-mkdir -p "docs/research/claude/.deep/<DATE>-<SLUG>"
-echo "WRITE_FILE=$(pwd)/docs/research/claude/<DATE>-<SLUG>.md"
-echo "DEEP_DIR=$(pwd)/docs/research/claude/.deep/<DATE>-<SLUG>"
+RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+BASE="<DATE>-<SLUG>"; N=2
+while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
+mkdir -p "$RESEARCH_DIR/.runs/$BASE"
+echo "WRITE_FILE=$RESEARCH_DIR/$BASE.md"
+echo "DEEP_DIR=$RESEARCH_DIR/.runs/$BASE"
+echo "PROJECT=$(basename "$(pwd)")"
 test -f "<SCRIPT>" && test -f "<RENDER>" && echo "PLUGIN_OK" || echo "PLUGIN_BROKEN"
 ```
 `PLUGIN_BROKEN` → le plugin `erom-research` est mal installé (ou `SCRIPT`/`RENDER` mal résolus) : STOP, ne lance pas le Workflow. Pas de vérification de binaire ni de circuit-breaker quota ici, contrairement à agy : `claude-run` n'a aucune dépendance externe, seul le quota Anthropic de la session s'applique.
@@ -65,7 +69,7 @@ N'écris pas le markdown à la main. Écris `{ report, meta }` dans `<DEEP_DIR>/
 ```bash
 node "<RENDER de l'Étape 0>" "<DEEP_DIR>/_render.json" > "<WRITE_FILE>"
 ```
-où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:claude', engine:'claude' }`.
+où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:claude', engine:'claude', project:'<PROJECT>' }`.
 (`render-report.mjs` importe la lib en spécifieur relatif : ne jamais inliner le chemin de la lib dans un `node -e`.)
 
 ## Étape 6 - Retour
