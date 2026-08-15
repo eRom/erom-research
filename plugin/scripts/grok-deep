@@ -40,13 +40,14 @@ function usage(code: number): never {
   grok-deep status [<run_id>|--latest] [--out-dir D]
   grok-deep list   [--out-dir D]
 
-  Défauts : out-dir=$PWD/docs/research/grok, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s`);
+  Défauts : out-dir=~/.claude/erom-plugins/researchs, budget=${DEFAULT_BUDGET}, timeout=${DEFAULT_TIMEOUT_SEC}s
+  --project <nom> : projet d'origine inscrit au frontmatter (défaut : basename du cwd)`);
   process.exit(code);
 }
 
 function nowIso(): string { return new Date().toISOString(); }
 
-function slugify(s: string): string {
+export function slugify(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "recherche";
 }
@@ -77,7 +78,7 @@ function preflight(): void {
 
 type Opts = {
   outDir: string; budget: number; effort?: string; model?: string;
-  timeoutSec: number; runId?: string; latest?: boolean;
+  timeoutSec: number; runId?: string; latest?: boolean; project?: string;
 };
 
 function parseArgs(argv: string[]): { positional: string[]; opts: Opts } {
@@ -92,12 +93,13 @@ function parseArgs(argv: string[]): { positional: string[]; opts: Opts } {
     else if (a === "--model") opts.model = next();
     else if (a === "--timeout-sec") opts.timeoutSec = parseInt(next(), 10);
     else if (a === "--run-id") opts.runId = next();
+    else if (a === "--project") opts.project = next();
     else if (a === "--latest") opts.latest = true;
     else if (a === "--help" || a === "-h") usage(0);
     else if (a.startsWith("--")) { console.error(`Option inconnue : ${a}`); usage(2); }
     else positional.push(a);
   }
-  if (!opts.outDir) opts.outDir = path.join(process.cwd(), "docs", "research", "grok");
+  if (!opts.outDir) opts.outDir = path.join(os.homedir(), ".claude", "erom-plugins", "researchs");
   opts.outDir = path.resolve(opts.outDir);
   if (!Number.isFinite(opts.budget) || opts.budget < 1 || opts.budget > 1024) {
     console.error("--budget doit être entre 1 et 1024"); process.exit(2);
@@ -108,12 +110,29 @@ function parseArgs(argv: string[]): { positional: string[]; opts: Opts } {
   return { positional, opts };
 }
 
-function uniqueRunId(outDir: string, slug: string): string {
+export function uniqueRunId(outDir: string, slug: string): string {
   const date = nowIso().slice(0, 10);
   let id = `${date}-${slug}`;
   let n = 2;
-  while (fs.existsSync(path.join(outDir, ".runs", id))) { id = `${date}-${slug}-${n}`; n++; }
+  while (fs.existsSync(path.join(outDir, ".runs", id)) || fs.existsSync(path.join(outDir, `${id}.md`))) {
+    id = `${date}-${slug}-${n}`; n++;
+  }
   return id;
+}
+
+export function buildFrontmatter(query: string, project: string, createdIso: string): string {
+  return [
+    "---",
+    `title: ${JSON.stringify(query)}`,
+    "type: research",
+    "source_tool: erom-research:grok",
+    "engine: grok",
+    `project: ${project}`,
+    `created: ${createdIso}`,
+    "sensitivity: internal",
+    "---",
+    "",
+  ].join("\n");
 }
 
 function workerPrompt(query: string, budget: number): string {
@@ -239,12 +258,13 @@ async function cmdRun(query: string, opts: Opts): Promise<never> {
   const reportSrc = path.join(execDir, "report.md");
   let reportOk = false;
   if (fs.existsSync(reportSrc) && fs.statSync(reportSrc).size > 0) {
-    fs.copyFileSync(reportSrc, reportFinal);
+    const raw = fs.readFileSync(reportSrc, "utf8");
+    const m = raw.slice(0, 500).match(/\*\*Status:\s*(Verified|Partial)\*\*/i);
+    if (m) st.grok_status = m[1].toLowerCase() as "verified" | "partial";
+    const project = opts.project ?? path.basename(process.cwd());
+    fs.writeFileSync(reportFinal, buildFrontmatter(query, project, startedAt.slice(0, 10)) + "\n" + raw);
     st.report_path = reportFinal;
     reportOk = true;
-    const head = fs.readFileSync(reportFinal, "utf8").slice(0, 500);
-    const m = head.match(/\*\*Status:\s*(Verified|Partial)\*\*/i);
-    if (m) st.grok_status = m[1].toLowerCase() as "verified" | "partial";
   }
 
   const text: string = parsed?.text ?? "";
@@ -348,21 +368,23 @@ function cmdList(opts: Opts): never {
 
 // ---------- main ----------
 
-const [cmd, ...rest] = process.argv.slice(2);
-if (!cmd || cmd === "--help" || cmd === "-h") usage(cmd ? 0 : 2);
-const { positional, opts } = parseArgs(rest);
+if (import.meta.main) {
+  const [cmd, ...rest] = process.argv.slice(2);
+  if (!cmd || cmd === "--help" || cmd === "-h") usage(cmd ? 0 : 2);
+  const { positional, opts } = parseArgs(rest);
 
-if (cmd === "run") {
-  if (!positional.length) { console.error("run : sujet manquant"); usage(2); }
-  await cmdRun(positional.join(" "), opts);
-} else if (cmd === "start") {
-  if (!positional.length) { console.error("start : sujet manquant"); usage(2); }
-  cmdStart(positional.join(" "), opts, process.argv.slice(2));
-} else if (cmd === "status") {
-  cmdStatus(positional[0], opts);
-} else if (cmd === "list") {
-  cmdList(opts);
-} else {
-  console.error(`Commande inconnue : ${cmd}`);
-  usage(2);
+  if (cmd === "run") {
+    if (!positional.length) { console.error("run : sujet manquant"); usage(2); }
+    await cmdRun(positional.join(" "), opts);
+  } else if (cmd === "start") {
+    if (!positional.length) { console.error("start : sujet manquant"); usage(2); }
+    cmdStart(positional.join(" "), opts, process.argv.slice(2));
+  } else if (cmd === "status") {
+    cmdStatus(positional[0], opts);
+  } else if (cmd === "list") {
+    cmdList(opts);
+  } else {
+    console.error(`Commande inconnue : ${cmd}`);
+    usage(2);
+  }
 }
