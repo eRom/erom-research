@@ -1,6 +1,6 @@
 # Fichiers clés
 
-_Mis à jour : 2026-08-12_
+_Mis à jour : 2026-08-15_
 
 ## Manifeste
 
@@ -34,7 +34,7 @@ _Mis à jour : 2026-08-12_
 | `scripts/render-report.mjs` | CLI `node render-report.mjs <json>` → markdown sur stdout. Importe la lib en spécifieur relatif. |
 | `scripts/agy_scratch.py` | Lance UN `agy --print` dans un scratch dir puis déplace les sorties. Évite les snapshots de repo et les rejets de sandbox. Défaut `--model "Gemini 3.6 Flash (High)"`. |
 | `scripts/recover_transcript.py` | Plan B : récupère la dernière réponse modèle depuis le transcript agy quand le fichier de sortie est vide. |
-| `scripts/grok-deep` | CLI Bun autonome. `run` (bloquant), `start` (détaché), `status`, `list`. Défaut out-dir `$PWD/docs/research/grok`. Mode 100755. |
+| `scripts/grok-deep` | CLI Bun autonome. `run` (bloquant), `start` (détaché), `status`, `list`. Défaut out-dir `~/.claude/erom-plugins/researchs`. Mode 100755. |
 
 ## Tests
 

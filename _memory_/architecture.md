@@ -1,6 +1,6 @@
 # Architecture
 
-_Mis à jour : 2026-08-12_
+_Mis à jour : 2026-08-15_
 
 **Type** : plugin Claude Code `erom-research` (renommé le 2026-07-30, ex-`deep-research`), distribué via `erom-marketplace` (dépôt public `eRom/erom-research` ; dossier local `erom-agence-deep-research`).
 
@@ -26,7 +26,7 @@ scripts/tests/               bun (2 fichiers) + python (1 fichier)
 
 **Flux agy** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-research.js)` → N angles en parallèle par round via subagents `erom-research:agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
 
-**Sorties** : `docs/research/{agy,claude,grok,nlm}/` du projet courant, jamais dans le plugin.
+**Sorties** (0.5.0) : store central `~/.claude/erom-plugins/researchs/` (plat, `<date>-<slug>.md`, frontmatter canonique title/type/engine/project/created ; artefacts sous `.runs/`, gitignorés ; versionnement par le nightly de `~/.claude`, aucune commande git dans les skills). Plus rien dans le projet courant.
 
 **Dépendances externes critiques** : binaires `agy`, `grok` (+ `bun`), `nlm`, `node`. Chaque skill fait son préflight et s'arrête si le binaire manque ou si l'auth est expirée.
 

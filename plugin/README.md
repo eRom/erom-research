@@ -47,13 +47,11 @@ notebook reste interrogeable indéfiniment.
 
 ## Sorties
 
-Tous les rapports atterrissent sous `docs/research/<moteur>/` du projet courant :
+Tous les rapports atterrissent dans le store central `~/.claude/erom-plugins/researchs/` (plat, un fichier par recherche, projet d'origine en frontmatter `project:`) :
 
 ```
-docs/research/agy/<date>-<slug>.md      + .deep/<date>-<slug>/  (artefacts bruts par angle)
-docs/research/grok/<run_id>.md          + .runs/<run_id>/       (status.json, worker.log)
-docs/research/nlm/<date>-<slug>.md      (frontmatter : notebook_id, url, source_count)
-docs/research/claude/<date>-<slug>.md   (pas d'artefacts bruts par angle : `.deep/` ne garde que _render.json)
+~/.claude/erom-plugins/researchs/<date>-<slug>.md      rapport (frontmatter : title, type, source_tool, engine, project, created, sensitivity + champs moteur)
+~/.claude/erom-plugins/researchs/.runs/<date>-<slug>/  artefacts de travail, non versionnés (ex-.deep agy/claude ; status.json, worker.log grok)
 ```
 
 ## Pré-requis
