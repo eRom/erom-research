@@ -1,6 +1,6 @@
 ---
 name: nlm
-description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans docs/research/nlm/."
+description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans ~/.claude/erom-plugins/researchs/."
 user-invocable: true
 allowed-tools: Bash, Read, Agent
 ---
@@ -20,12 +20,16 @@ $ARGUMENTS
 2. Préflight + chemins (UN Bash) - l'échec d'auth se constate en session, pas par une notification d'échec 30 s après le spawn :
    ```bash
    nlm notebook list --json 2>&1 | head -3
-   mkdir -p "docs/research/nlm"
-   echo "OUT=$(pwd)/docs/research/nlm/<DATE>-<SLUG>.md"
+   RESEARCH_DIR="$HOME/.claude/erom-plugins/researchs"
+   BASE="<DATE>-<SLUG>"; N=2
+   while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
+   mkdir -p "$RESEARCH_DIR"
+   echo "OUT=$RESEARCH_DIR/$BASE.md"
+   echo "PROJECT=$(basename "$(pwd)")"
    ```
    `DATE` = aujourd'hui ISO. `SLUG` = sujet lowercased, non-alphanumérique → `-`, répétitions réduites, max 60 chars. Chemin ABSOLU obligatoire (le subagent tourne dans un autre cwd, `~` et chemins relatifs non expansés).
    Erreur d'auth dans la sortie (« Cookies have expired ») ou commande en échec → demander à Romain de lancer `! nlm login` puis STOP. Ne JAMAIS lancer `nlm login` soi-même (interactif, bloquerait la session).
-3. Spawn le subagent `notebook-creator` (tool Agent, `subagent_type: "erom-research:notebook-creator"` - il est `background: true`, la task-notification arrive toute seule). La mission fournit : `<sujet>` et `REPORT_PATH=<OUT>` (littéral, absolu). Le subagent construit lui-même la requête deep search riche et écrit le rapport final à REPORT_PATH.
+3. Spawn le subagent `notebook-creator` (tool Agent, `subagent_type: "erom-research:notebook-creator"` - il est `background: true`, la task-notification arrive toute seule). La mission fournit : `<sujet>`, `REPORT_PATH=<OUT>` (littéral, absolu) et `PROJECT=<PROJECT>`. Le subagent construit lui-même la requête deep search riche et écrit le rapport final à REPORT_PATH.
 4. Relaie tout de suite : run lancé en arrière-plan, durée typique 10-20 min, le rapport arrivera tout seul. **Reprends la conversation sans attendre.**
 5. À la notification de fin : Read `<OUT>`.
    - Rapport présent → restitue : chemin, notebook_id + URL (frontmatter), source_count, les ~30 premières lignes verbatim (synthèse), et la voie de suivi sur ce notebook_id (voir « Suivi »).
@@ -36,7 +40,7 @@ $ARGUMENTS
 
 ```bash
 nlm notebook list
-ls docs/research/nlm/ 2>/dev/null
+grep -l "engine: notebooklm" "$HOME"/.claude/erom-plugins/researchs/*.md 2>/dev/null
 ```
 Notebooks côté Google + rapports locaux.
 

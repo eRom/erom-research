@@ -81,12 +81,17 @@ UN seul chat de synthèse par run (discipline quota, 500/jour partagés).
 
 ```markdown
 ---
+title: "{TITLE}"
+type: research
+source_tool: erom-research:nlm
 engine: notebooklm
+project: {PROJECT}
 notebook_id: <notebook_id>
 url: <url du JSON notebook get>
 query: "<DEEP_SEARCH_QUERY>"
-date: <YYYY-MM-DD via date +%F>
 source_count: <n>
+created: <YYYY-MM-DD via date +%F>
+sensitivity: internal
 ---
 
 # <TITLE>
@@ -97,7 +102,7 @@ source_count: <n>
 Référentiel vivant : `nlm notebook query <notebook_id> "<question>"` pour continuer l'exploration.
 ```
 
-Sans REPORT_PATH dans la mission : saute cette étape, le fichier mémoire de l'étape 5 fait foi.
+`{PROJECT}` vient de la mission (`PROJECT=...`) ; si la mission ne le fournit pas, écris `project: unknown`. Sans REPORT_PATH dans la mission : saute cette étape, le fichier mémoire de l'étape 5 fait foi.
 
 ## 5. Mise à jour - Mémoire
 
