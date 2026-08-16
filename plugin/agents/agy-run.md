@@ -60,6 +60,26 @@ python3 "<SCRATCH>" --timeout <SECONDES ENTIÈRES> --out "<WRITE_FILE>" --prompt
      ```
      Retourne le contenu récupéré. Vide aussi → échec verbeux (les 8 dernières lignes du log).
 
+## Si l'appel dépasse son timeout
+
+Le harnais REFUSE `sleep` en premier plan, et tu n'as pas l'outil `Monitor`.
+Une seule forme marche, applique-la telle quelle :
+
+```bash
+until test -s "<WRITE_FILE>"; do sleep 5; done
+```
+
+lancée avec `run_in_background: true`, puis `Read` du fichier de sortie de la tâche
+que le harnais te rend. Rien d'autre.
+
+Interdits, tous vérifiés bloqués ou inutiles le 12/08 sur le round 4 de techradar :
+`sleep N && test ...`, `while kill -0 $(pgrep ...)`, `ps aux | grep agy`,
+`wait $(pgrep ...)`, la lecture des logs internes d'agy pour deviner l'avancement,
+et tout enchaînement de sleeps plus courts pour contourner le refus.
+
+Trois échecs d'affilée sur la même attente : abandonne, retourne l'échec verbeux.
+Ne boucle pas.
+
 Chaque prompt se termine par : « OUTPUT REQUIREMENT (CRITIQUE) : n'imprime rien dans le
 chat. Le fichier écrit à `<WRITE_FILE>` est ton seul livrable. »
 

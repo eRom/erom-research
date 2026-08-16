@@ -220,6 +220,9 @@ const votePrompt = (c, v) =>
   `3. La qualité de source suffit-elle à la force du claim ? Un claim extraordinaire exige du primaire.\n` +
   `4. Est-il périmé ? Un vieux claim dans un domaine qui bouge vite est suspect.\n` +
   `5. Est-ce du marketing, un communiqué, un benchmark cherry-pické, de la spéculation de forum ?\n\n` +
+  `Lecture GitHub : passe par api.github.com ou raw.githubusercontent.com, jamais par une URL github.com/... . ` +
+  `Mesuré la semaine du 10/08/2026 : 225 WebFetch sur github.com, 57 socket hang up, un sur quatre ; 0 échec sur 50 appels aux deux autres. ` +
+  `Un échec : ne retente pas la même URL, bascule sur l'API.\n\n` +
   `Verdict : kill (non étayé, contredit ou marketing) | downgrade (partiellement vrai, plus faible qu'énoncé) | hold (bien étayé, actuel, source à la hauteur).\n` +
   `En cas d'incertitude, réponds downgrade, pas kill : la couverture du rapport signalera le doute.\n` +
   `Champs attendus : verdict, refuted, refutingSource et refutingEvidence dès que tu votes kill ou downgrade, newConfidence obligatoire sur downgrade (high|medium|low).\n` +

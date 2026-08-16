@@ -24,7 +24,13 @@ Un header avec QUESTION (la question globale), QUERY (ton angle) et ROUND.
    plutôt que d'accepter le panorama.
 3. `WebFetch` les pages les plus prometteuses. Privilégie sources primaires : dépôts
    officiels, model cards, fichiers LICENSE, papiers, fils d'issues des mainteneurs.
-4. Extrais 4 à 8 claims FALSIFIABLES portant sur la question globale.
+4. **Lecture GitHub : passe par `api.github.com` ou `raw.githubusercontent.com`, jamais
+   par une URL `github.com/...`.** Mesuré sur la semaine du 10/08/2026 : 225 `WebFetch`
+   sur `github.com`, 57 échecs en `socket hang up`, soit un sur quatre ; 0 échec sur
+   50 appels aux deux autres. Un échec : ne retente pas la même URL, bascule sur l'API.
+   Exemples : `api.github.com/repos/OWNER/REPO`, `.../issues/N`, `.../releases/latest`,
+   `raw.githubusercontent.com/OWNER/REPO/HEAD/README.md`.
+5. Extrais 4 à 8 claims FALSIFIABLES portant sur la question globale.
 
 ## Ce que doit être un claim
 
