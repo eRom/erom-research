@@ -32,7 +32,7 @@ _Mis à jour : 2026-08-15_
 | `scripts/deep-research.js` | Script Workflow. Helpers de calcul **inlinés** (un script Workflow ne peut rien importer), boucle de rounds, red-team, synthèse. |
 | `scripts/deep-research-lib.mjs` | Source de vérité des mêmes helpers + `renderReportMarkdown` (en-têtes de rapport en français). |
 | `scripts/render-report.mjs` | CLI `node render-report.mjs <json>` → markdown sur stdout. Importe la lib en spécifieur relatif. |
-| `scripts/agy_scratch.py` | Lance UN `agy --print` dans un scratch dir puis déplace les sorties. Évite les snapshots de repo et les rejets de sandbox. Défaut `--model "Gemini 3.6 Flash (High)"`. |
+| `scripts/agy_scratch.py` | Lance UN `agy --print` dans un scratch dir puis déplace les sorties. Évite les snapshots de repo et les rejets de sandbox. Défaut `--model "Gemini 3.7 Flash (High)"`. |
 | `scripts/recover_transcript.py` | Plan B : récupère la dernière réponse modèle depuis le transcript agy quand le fichier de sortie est vide. |
 | `scripts/grok-deep` | CLI Bun autonome. `run` (bloquant), `start` (détaché), `status`, `list`. Défaut out-dir `~/.claude/erom-plugin-artefacts/researchs`. Mode 100755. |
 

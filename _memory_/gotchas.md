@@ -66,9 +66,9 @@ Un délimiteur de fermeture écrit `--- ` (espace en fin de ligne) n'est jamais 
 
 ## `agy` valide strictement le libellé du modèle
 
-Un `--model` inconnu fait échouer l'appel avec `model X is not recognized`, **et la liste des libellés valides s'affiche dans l'erreur** — c'est la façon la plus rapide de la consulter. Le format attendu est le libellé (`Gemini 3.6 Flash (High)`), pas le slug rendu par `agy models` (`gemini-3.6-flash-high`).
+Un `--model` inconnu fait échouer l'appel avec `model X is not recognized`, **et la liste des libellés valides s'affiche dans l'erreur** — c'est la façon la plus rapide de la consulter. Le format attendu est le libellé (`Gemini 3.7 Flash (High)`), pas le slug rendu par `agy models` (`gemini-3.7-flash-high`).
 
-Conséquence : un défaut de modèle périmé ne casse rien tant que l'ancien modèle existe encore, il dégrade juste silencieusement la qualité. `agy_scratch.py` tournait ainsi sur 3.5 alors que le reste du harnais était en 3.6.
+Conséquence : un défaut de modèle périmé ne casse rien tant que l'ancien modèle existe encore, il dégrade juste silencieusement la qualité. `agy_scratch.py` tournait ainsi sur 3.5 alors que le reste du harnais était en 3.7.
 
 ## Les helpers partagés sont dupliqués
 

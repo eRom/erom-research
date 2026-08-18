@@ -35,7 +35,7 @@ def find_agy():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--timeout", default="360")
-    ap.add_argument("--model", default="Gemini 3.6 Flash (High)")
+    ap.add_argument("--model", default="Gemini 3.7 Flash (High)")
     ap.add_argument("--in", dest="ins", action="append", default=[])
     ap.add_argument("--in-dir", dest="indirs", action="append", default=[])
     ap.add_argument("--out", dest="outs", action="append", default=[])
