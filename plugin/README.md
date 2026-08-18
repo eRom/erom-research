@@ -6,42 +6,42 @@ latence et de livrable différent.
 
 | Skill | Moteur | Pilotage | Livrable | Quota consommé |
 |---|---|---|---|---|
-| `agy` | Antigravity CLI (Gemini groundé Google) | Claude : matrice de preuves, gate plan, rounds adaptatifs, vote 3 voix | rapport cité, tags preuve/inférence/hypothèse | Google |
-| `grok` | Grok CLI, workflow builtin `deep-research` | délégué au moteur (plan borné, vérif adversariale sur shard indépendant) | rapport cité + coverage explicite | pool hebdo X |
-| `nlm` | NotebookLM (CLI `nlm`) | délégué au moteur (deep search web, import, auto-label) | rapport **+ référentiel persistant** de 40-70 sources | Google (NotebookLM) |
-| `claude` | Subagents Claude natifs (WebSearch/WebFetch) | Claude : matrice de preuves, gate plan, rounds adaptatifs, vote 3 voix | rapport cité + couverture | quota Anthropic |
+| `deep-gemini` | Antigravity CLI (Gemini groundé Google) | Claude : matrice de preuves, gate plan, rounds adaptatifs, vote 3 voix | rapport cité, tags preuve/inférence/hypothèse | Google |
+| `deep-grok` | Grok CLI, workflow builtin `deep-research` | délégué au moteur (plan borné, vérif adversariale sur shard indépendant) | rapport cité + coverage explicite | pool hebdo X |
+| `deep-notebook` | NotebookLM (CLI `nlm`) | délégué au moteur (deep search web, import, auto-label) | rapport **+ référentiel persistant** de 40-70 sources | Google (NotebookLM) |
+| `deep-claude` | Subagents Claude natifs (WebSearch/WebFetch) | Claude : matrice de preuves, gate plan, rounds adaptatifs, vote 3 voix | rapport cité + couverture | quota Anthropic |
 
-Choisir : **agy** quand la justesse prime et que tu veux contrôler le plan de
-recherche ; **grok** quand tu veux un second moteur indépendant sans toucher au
-quota Google ; **nlm** quand le sujet va vivre et que tu reviendras poser des
-questions au corpus (`nlm notebook query <notebook_id>`, ou la skill personnelle
-`/notebook-chat` si tu l'as, elle n'est pas fournie ici) ; **claude** quand tu veux
+Choisir : **deep-gemini** quand la justesse prime et que tu veux contrôler le plan
+de recherche ; **deep-grok** quand tu veux un second moteur indépendant sans toucher
+au quota Google ; **deep-notebook** quand le sujet va vivre et que tu reviendras poser
+des questions au corpus (`nlm notebook query <notebook_id>`, ou la skill personnelle
+`/notebook-chat` si tu l'as, elle n'est pas fournie ici) ; **deep-claude** quand tu veux
 le pipeline piloté sans dépendance externe ni quota tiers.
 
 ## Usage
 
 ```
-/erom-research:agy  <sujet> [--depth L|H] [--yes]
-/erom-research:grok <sujet> [--budget N] [--detach]
-/erom-research:grok status --latest
-/erom-research:grok list
-/erom-research:nlm  <sujet>
-/erom-research:nlm  list
-/erom-research:claude <sujet> [--depth L|H] [--yes]
+/erom-research:deep-gemini   <sujet> [--depth L|H] [--yes]
+/erom-research:deep-claude   <sujet> [--depth L|H] [--yes]
+/erom-research:deep-grok     <sujet> [--budget N] [--detach]
+/erom-research:deep-grok     status --latest
+/erom-research:deep-grok     list
+/erom-research:deep-notebook <sujet>
+/erom-research:deep-notebook list
 ```
 
-**agy** — Claude décompose le sujet en matrice de preuves + angles, te montre
+**deep-gemini** — Claude décompose le sujet en matrice de preuves + angles, te montre
 le plan (gate, sautable avec `--yes`), puis lance un Workflow : N angles
 browsés en parallèle par round, analyse de convergence entre rounds (2 en
 `L`, jusqu'à 4 en `H`), vote 3 voix adversarial sur les claims centraux
 et mono-source, synthèse. Bloquant, 5-15 min.
 
-**grok** — asynchrone : lancé en arrière-plan, la conversation continue, le
+**deep-grok** — asynchrone : lancé en arrière-plan, la conversation continue, le
 rapport arrive par notification (3-10 min). `--budget` est le cap dur de
 dépense en agents (défaut 24). `--detach` fait survivre le run à la fermeture
 de la session, à reprendre plus tard via `status`.
 
-**nlm** — asynchrone (10-20 min) : crée un notebook dédié, lance une deep
+**deep-notebook** — asynchrone (10-20 min) : crée un notebook dédié, lance une deep
 search Google, importe et labellise les sources, produit une synthèse. Le
 notebook reste interrogeable indéfiniment.
 
@@ -56,12 +56,12 @@ Tous les rapports atterrissent dans le store central `~/.claude/erom-plugin-arte
 
 ## Pré-requis
 
-| Moteur | Binaire | Auth |
+| Skill | Binaire | Auth |
 |---|---|---|
-| agy | `agy` ([antigravity.google](https://antigravity.google)) | lancer `agy` une fois en terminal (OAuth) |
-| grok | `grok` + `bun` | `grok` authentifié (abonnement X) |
-| nlm | `nlm` | `nlm login` (cookies Google, à rafraîchir périodiquement) |
-| claude | aucun | aucune, quota Anthropic de la session |
+| `deep-gemini` | `agy` ([antigravity.google](https://antigravity.google)) | lancer `agy` une fois en terminal (OAuth) |
+| `deep-grok` | `grok` + `bun` | `grok` authentifié (abonnement X) |
+| `deep-notebook` | `nlm` | `nlm login` (cookies Google, à rafraîchir périodiquement) |
+| `deep-claude` | aucun | aucune, quota Anthropic de la session |
 
 Chaque skill fait son préflight et s'arrête proprement si le binaire manque ou
 si l'auth est expirée — jamais de findings inventés sur un moteur mort.

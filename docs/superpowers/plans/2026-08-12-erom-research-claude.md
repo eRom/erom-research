@@ -1,4 +1,4 @@
-# erom-research:claude Implementation Plan
+# erom-research:deep-claude Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -31,8 +31,8 @@
 | `plugin/scripts/tests/deep-research-sync.test.mjs` | Garde-fou inlining et namespace. | Renommé, étendu |
 | `plugin/agents/claude-run.md` | Subagent chercheur natif (WebSearch, WebFetch). | Créé |
 | `plugin/agents/agy-run.md` | Forwarder agy. Son `MODE: redteam` devient inutilisé. | Note de dépréciation |
-| `plugin/skills/claude/SKILL.md` | Skill `/erom-research:claude`. | Créé |
-| `plugin/skills/agy/SKILL.md` | Skill `/erom-research:agy`. | `SCRIPT` et `engines` mis à jour |
+| `plugin/skills/deep-claude/SKILL.md` | Skill `/erom-research:deep-claude`. | Créé |
+| `plugin/skills/deep-gemini/SKILL.md` | Skill `/erom-research:deep-gemini`. | `SCRIPT` et `engines` mis à jour |
 | `plugin/README.md`, `_memory_/*.md` | Documentation. | Chemins mis à jour |
 
 ---
@@ -46,13 +46,13 @@ Le renommage doit être atomique : le moindre chemin oublié casse le workflow a
 - Rename: `plugin/scripts/deep-agy-lib.mjs` vers `plugin/scripts/deep-research-lib.mjs`
 - Rename: `plugin/scripts/tests/deep-agy-lib.test.mjs` vers `plugin/scripts/tests/deep-research-lib.test.mjs`
 - Rename: `plugin/scripts/tests/deep-agy-sync.test.mjs` vers `plugin/scripts/tests/deep-research-sync.test.mjs`
-- Modify: `plugin/scripts/render-report.mjs:5`, `plugin/skills/agy/SKILL.md:8,19`, `plugin/README.md:73,74,83`
+- Modify: `plugin/scripts/render-report.mjs:5`, `plugin/skills/deep-gemini/SKILL.md:8,19`, `plugin/README.md:73,74,83`
 - Modify: `plugin/agents/agy-run.md:3,70,94` (trois mentions du nom du Workflow dans la description et les modes)
 - Modify: `_memory_/architecture.md:11,21,26`, `_memory_/patterns.md:21`, `_memory_/key-files.md:30,31,41,42`, `_memory_/gotchas.md:37`
 
 **Interfaces:**
 - Consumes: rien
-- Produces: `renderReportMarkdown(report, meta)` accepte `meta.sourceTool` (string, défaut `'erom-research:agy'`) et `meta.engine` (string, optionnel)
+- Produces: `renderReportMarkdown(report, meta)` accepte `meta.sourceTool` (string, défaut `'erom-research:deep-gemini'`) et `meta.engine` (string, optionnel)
 
 - [ ] **Step 1: Écrire le test du sourceTool paramétré**
 
@@ -62,9 +62,9 @@ Dans `plugin/scripts/tests/deep-agy-lib.test.mjs` (avant renommage), ajouter :
 test('renderReportMarkdown: sourceTool paramétrable, défaut agy', () => {
   const report = { tldr: [], findings: [], coverage: {}, conclusion: { recommendation: 'R', overallConfidence: 'high' }, references: [] }
   const base = { title: 'T', depth: 'L', rounds: 1, converged: true, date: '2026-08-12' }
-  expect(renderReportMarkdown(report, base)).toContain('source_tool: erom-research:agy')
-  const claude = renderReportMarkdown(report, { ...base, sourceTool: 'erom-research:claude', engine: 'claude' })
-  expect(claude).toContain('source_tool: erom-research:claude')
+  expect(renderReportMarkdown(report, base)).toContain('source_tool: erom-research:deep-gemini')
+  const claude = renderReportMarkdown(report, { ...base, sourceTool: 'erom-research:deep-claude', engine: 'claude' })
+  expect(claude).toContain('source_tool: erom-research:deep-claude')
   expect(claude).toContain('engine: claude')
 })
 ```
@@ -74,7 +74,7 @@ test('renderReportMarkdown: sourceTool paramétrable, défaut agy', () => {
 ```bash
 cd plugin && bun test scripts/tests/deep-agy-lib.test.mjs
 ```
-Attendu : FAIL sur `source_tool: erom-research:claude` (la chaîne est codée en dur).
+Attendu : FAIL sur `source_tool: erom-research:deep-claude` (la chaîne est codée en dur).
 
 - [ ] **Step 3: Rendre le test vert**
 
@@ -83,7 +83,7 @@ Dans `deep-agy-lib.mjs`, remplacer le bloc frontmatter de `renderReportMarkdown`
 ```js
   L.push([
     '---', `title: "${meta.title}"`, 'type: research',
-    `source_tool: ${meta.sourceTool || 'erom-research:agy'}`,
+    `source_tool: ${meta.sourceTool || 'erom-research:deep-gemini'}`,
     ...(meta.engine ? [`engine: ${meta.engine}`] : []),
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,
     `created: ${meta.date}`, 'sensitivity: internal', '---', '',
@@ -121,9 +121,9 @@ git mv tests/deep-agy-sync.test.mjs tests/deep-research-sync.test.mjs
 
 `deep-research-lib.mjs:3` : même mise à jour du commentaire.
 
-`skills/agy/SKILL.md:19` : `SCRIPT` devient `${CLAUDE_PLUGIN_ROOT}/scripts/deep-research.js`.
+`skills/deep-gemini/SKILL.md:19` : `SCRIPT` devient `${CLAUDE_PLUGIN_ROOT}/scripts/deep-research.js`.
 
-`skills/agy/SKILL.md:8` : « via le Workflow `deep-agy` » devient « via le Workflow `erom-deep-research` ».
+`skills/deep-gemini/SKILL.md:8` : « via le Workflow `deep-agy` » devient « via le Workflow `erom-deep-research` ».
 
 `tests/deep-research-sync.test.mjs:40` : le **nom** du test cite `deep-agy.js`, le renommer en
 `deep-research.js`. Le test lui-même sera remplacé en Task 4, mais son nom doit être juste dès
@@ -803,7 +803,7 @@ donnent un faux positif, mesuré. C'est la seule barrière syntaxique avant le p
 
 - [ ] **Step 4: Corriger la documentation de la skill agy, devenue fausse**
 
-Deux affirmations de `plugin/skills/agy/SKILL.md` cessent d'être vraies à ce commit, et l'une
+Deux affirmations de `plugin/skills/deep-gemini/SKILL.md` cessent d'être vraies à ce commit, et l'une
 d'elles contredit l'argument quota central du chantier :
 
 - ligne 10 : « Le Workflow spawne un subagent `erom-research:agy-run` par angle/claim »
@@ -817,7 +817,7 @@ pas consommer trois appels de quota Google par claim ».
 - [ ] **Step 5: Commit**
 
 ```bash
-git add plugin/scripts/deep-research.js plugin/skills/agy/SKILL.md
+git add plugin/scripts/deep-research.js plugin/skills/deep-gemini/SKILL.md
 git commit -m "feat(research): vote adversarial a 3 voix en place de la red-team a une voix
 
 Trois verificateurs Claude natifs par claim, seuil de deux voix contre. La
@@ -829,20 +829,20 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 ---
 
-### Task 8: Skill /erom-research:claude
+### Task 8: Skill /erom-research:deep-claude
 
 **Files:**
-- Create: `plugin/skills/claude/SKILL.md`
-- Modify: `plugin/skills/agy/SKILL.md` (passer `engines: 'agy'` explicitement)
+- Create: `plugin/skills/deep-claude/SKILL.md`
+- Modify: `plugin/skills/deep-gemini/SKILL.md` (passer `engines: 'agy'` explicitement)
 - Modify: `plugin/README.md` (tableau des moteurs, section Sorties, section Composants)
 
 **Interfaces:**
 - Consumes: le workflow `deep-research.js` avec `args.engines`
-- Produces: la commande `/erom-research:claude <sujet> [--depth L|H] [--yes]`
+- Produces: la commande `/erom-research:deep-claude <sujet> [--depth L|H] [--yes]`
 
 - [ ] **Step 1: Créer la skill**
 
-La skill reprend les six étapes de `skills/agy/SKILL.md`, dans le même ordre. Lire ce
+La skill reprend les six étapes de `skills/deep-gemini/SKILL.md`, dans le même ordre. Lire ce
 fichier avant d'écrire, il est la référence de structure. Les six étapes attendues :
 
 | Étape | Contenu |
@@ -857,7 +857,7 @@ fichier avant d'écrire, il est la référence de structure. Les six étapes att
 
 Différences non négociables avec la skill agy :
 
-- frontmatter : `name: claude`, **`user-invocable: true`**, `allowed-tools: Bash, Write, Read, Workflow, Agent`, description mentionnant les triggers `/erom-research:claude` et la sortie `docs/research/claude/`. Les trois skills existantes portent toutes `user-invocable: true` ; sans ce champ, `/erom-research:claude` n'est pas exposé comme commande et la Task 9 ne peut pas se lancer
+- frontmatter : `name: claude`, **`user-invocable: true`**, `allowed-tools: Bash, Write, Read, Workflow, Agent`, description mentionnant les triggers `/erom-research:deep-claude` et la sortie `docs/research/claude/`. Les trois skills existantes portent toutes `user-invocable: true` ; sans ce champ, `/erom-research:deep-claude` n'est pas exposé comme commande et la Task 9 ne peut pas se lancer
 - ajouter la phrase d'autorisation explicite du tool `Workflow`, comme la skill agy l'a en tête de fichier : sans elle, l'appel du Workflow est bloqué par la consigne générale
 - Étape 1, préflight : **pas** de vérification du binaire agy ni de circuit-breaker quota. Vérifier uniquement que `SCRIPT` et `RENDER` existent. Chemins absolus obligatoires, même contrainte que la skill agy.
 
@@ -878,12 +878,12 @@ Workflow({
 })
 ```
 
-- Étape 5, rendu : `meta = { title, depth, rounds, converged, date, sourceTool: 'erom-research:claude', engine: 'claude' }`
+- Étape 5, rendu : `meta = { title, depth, rounds, converged, date, sourceTool: 'erom-research:deep-claude', engine: 'claude' }`
 - Étape 6 : reprendre **verbatim** la section « Clôture de run, ordre imposé » de la skill agy. La première phrase rendue porte la couverture, jamais la complétion technique, et il reste interdit de déduire un « 0 erreur » du fait que le workflow s'est terminé.
 - Ajouter une ligne sur les claims non vérifiables : si `coverage.unverifiedClaims` est non nul, le dire dans la phrase de clôture.
 - Préciser dans l'Étape 1 que `.deep/<DATE>-<SLUG>/` ne portera que `_render.json` en mode claude : `claude-run` n'a que `WebSearch` et `WebFetch`, il ne peut rien écrire sur disque, contrairement à `agy-run` qui y dépose un markdown par angle.
 
-Passages à copier **verbatim** depuis `plugin/skills/agy/SKILL.md`, sans les reformuler (leur
+Passages à copier **verbatim** depuis `plugin/skills/deep-gemini/SKILL.md`, sans les reformuler (leur
 formulation actuelle vient de mesures de terrain, la paraphraser en perd la portée) :
 
 | Ligne source | Ce que c'est |
@@ -894,7 +894,7 @@ formulation actuelle vient de mesures de terrain, la paraphraser en perd la port
 
 - [ ] **Step 2: Rendre explicite le moteur de la skill agy**
 
-Dans `skills/agy/SKILL.md`, Étape 4, l'argument `engines: "agy"` est déjà présent. Vérifier qu'il l'est toujours après la Task 1 et qu'il n'a pas été perdu au renommage.
+Dans `skills/deep-gemini/SKILL.md`, Étape 4, l'argument `engines: "agy"` est déjà présent. Vérifier qu'il l'est toujours après la Task 1 et qu'il n'a pas été perdu au renommage.
 
 - [ ] **Step 3: Mettre à jour le README du plugin et le manifeste**
 
@@ -911,7 +911,7 @@ tableau.
 | `claude` | Subagents Claude natifs (WebSearch/WebFetch) | Claude : matrice de preuves, gate plan, rounds adaptatifs, vote 3 voix | rapport cité + couverture | quota Anthropic |
 ```
 
-4. `README.md:22-28`, bloc Usage : ajouter `/erom-research:claude <sujet> [--depth L|H] [--yes]`.
+4. `README.md:22-28`, bloc Usage : ajouter `/erom-research:deep-claude <sujet> [--depth L|H] [--yes]`.
 5. Section Sorties : ajouter `docs/research/claude/<date>-<slug>.md`. Ne **pas** promettre
    « artefacts bruts par angle » pour ce chemin : en mode claude, `claude-run` n'a que
    `WebSearch` et `WebFetch`, donc aucun moyen d'écrire sur disque. Seul `_render.json` y
@@ -928,8 +928,8 @@ marketplace, pas la description ni les keywords du manifeste.
 
 ```bash
 cd /Users/recarnot/dev/erom-agence-deep-research
-grep -E "^(name|user-invocable|allowed-tools):" plugin/skills/claude/SKILL.md
-grep -c "engines" plugin/skills/claude/SKILL.md
+grep -E "^(name|user-invocable|allowed-tools):" plugin/skills/deep-claude/SKILL.md
+grep -c "engines" plugin/skills/deep-claude/SKILL.md
 ```
 Attendu : les trois champs présents, `allowed-tools` incluant `Workflow`, et au moins une
 occurrence de `engines`. Un `head` ne suffit pas : il prouve que le fichier a été écrit, pas
@@ -939,7 +939,7 @@ que les champs qui conditionnent l'invocabilité sont là.
 
 ```bash
 git add plugin/skills/ plugin/README.md
-git commit -m "feat(research): skill /erom-research:claude, sortie docs/research/claude
+git commit -m "feat(research): skill /erom-research:deep-claude, sortie docs/research/claude
 
 Quatrieme moteur, sans dependance externe ni quota tiers. Meme pipeline que
 agy : matrice, plan gate, rounds adaptatifs, cloture menee par la couverture.
@@ -976,20 +976,20 @@ Demander à Romain de lancer `/reload-plugins`. Un agent ne peut pas invoquer un
 - [ ] **Step 3: Run de non-régression agy**
 
 ```
-/erom-research:agy <sujet court et réel> --depth L
+/erom-research:deep-gemini <sujet court et réel> --depth L
 ```
 
-Attendu : le workflow va au bout, un rapport atterrit dans `docs/research/agy/`, son frontmatter porte `source_tool: erom-research:agy`.
+Attendu : le workflow va au bout, un rapport atterrit dans `docs/research/agy/`, son frontmatter porte `source_tool: erom-research:deep-gemini`.
 
 En cas d'échec, distinguer les causes **avant** toute conclusion : `agy_scratch.py` rend le code **3** avec une ligne `QUOTA <message>` sur épuisement de quota. Un échec quota n'est pas une régression, il faut le dire tel quel et reprendre après reset.
 
 - [ ] **Step 4: Premier run claude**
 
 ```
-/erom-research:claude <le même sujet> --depth L
+/erom-research:deep-claude <le même sujet> --depth L
 ```
 
-Attendu : rapport dans `docs/research/claude/`, frontmatter portant `source_tool: erom-research:claude` et `engine: claude`.
+Attendu : rapport dans `docs/research/claude/`, frontmatter portant `source_tool: erom-research:deep-claude` et `engine: claude`.
 
 Vérifier dans le journal du run que les agents d'angles tournent bien en `claude-sonnet-5` et que ceux de synthèse héritent du modèle de session.
 
@@ -1103,13 +1103,13 @@ Le plugin passe de trois à quatre moteurs, et six passages annoncent encore l'a
 Ils ont été relevés sur l'arbre après la Task 8, qui ne couvrait que le README et le
 manifeste. Localiser par texte, jamais par numéro de ligne.
 
-1. `plugin/skills/agy/SKILL.md`, `plugin/skills/grok/SKILL.md` et
-   `plugin/skills/nlm/SKILL.md` portent chacun une ligne « Routage des trois moteurs »
+1. `plugin/skills/deep-gemini/SKILL.md`, `plugin/skills/deep-grok/SKILL.md` et
+   `plugin/skills/deep-notebook/SKILL.md` portent chacun une ligne « Routage des trois moteurs »
    identique, qui énumère agy, grok et nlm. Y ajouter le quatrième et corriger le décompte,
    en gardant la formulation compacte existante. Pour agy, la mention « red-team » de cette
    ligne devient « vote 3 voix », puisque la vérification a changé de nature pour les deux
    moteurs pilotés par le pipeline.
-2. `plugin/skills/nlm/SKILL.md`, champ `description` du frontmatter : « 3e moteur deep »
+2. `plugin/skills/deep-notebook/SKILL.md`, champ `description` du frontmatter : « 3e moteur deep »
    devient « moteur deep » ou son rang exact, au choix, mais ne doit plus contredire le
    nombre réel de moteurs.
 3. `plugin/README.md` : deux mentions de « red-team » subsistent en prose, l'une décrivant
@@ -1125,7 +1125,7 @@ concernés par ce chantier.
 ```bash
 git add plugin/scripts/deep-research-lib.mjs plugin/scripts/deep-research.js \
         plugin/scripts/tests/deep-research-sync.test.mjs plugin/agents/agy-run.md \
-        plugin/skills/agy/SKILL.md plugin/skills/grok/SKILL.md plugin/skills/nlm/SKILL.md \
+        plugin/skills/deep-gemini/SKILL.md plugin/skills/deep-grok/SKILL.md plugin/skills/deep-notebook/SKILL.md \
         plugin/README.md
 git commit -m "fix(research): isConverged echappait au garde-fou, agy n'envoyait pas importance
 

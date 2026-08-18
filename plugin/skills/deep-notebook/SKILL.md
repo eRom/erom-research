@@ -1,11 +1,11 @@
 ---
-name: nlm
-description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:nlm, 'deep NotebookLM', 'deep nlm', 'crée un référentiel sur', 'notebook deep'. Complémentaire de agy (multi-rounds piloté, justesse) et grok (2e moteur hors quota Google). Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
+name: deep-notebook
+description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:deep-notebook, 'deep NotebookLM', 'deep nlm', 'deep notebook', 'crée un référentiel sur', 'notebook deep'. Complémentaire de deep-gemini (multi-rounds piloté, justesse) et deep-grok (2e moteur hors quota Google). Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 user-invocable: true
 allowed-tools: Bash, Read, Agent
 ---
 
-Deep research par le moteur NotebookLM, asynchrone. Contrairement à `agy` (Claude pilote matrice + rounds) et `grok` (rapport one-shot d'un moteur indépendant), le livrable est double : un rapport local ET un référentiel persistant de ~40-70 sources (le notebook), réinterrogeable ensuite (voir « Suivi » plus bas). À réserver aux sujets qui vont vivre, ceux où on reviendra poser des questions.
+Deep research par le moteur NotebookLM, asynchrone. Contrairement à `deep-gemini` (Claude pilote matrice + rounds) et `deep-grok` (rapport one-shot d'un moteur indépendant), le livrable est double : un rapport local ET un référentiel persistant de ~40-70 sources (le notebook), réinterrogeable ensuite (voir « Suivi » plus bas). À réserver aux sujets qui vont vivre, ceux où on reviendra poser des questions.
 
 Requête brute :
 $ARGUMENTS
@@ -46,7 +46,7 @@ Notebooks côté Google + rapports locaux.
 
 ## Notes
 
-- Jamais d'auto-fire depuis un brainstorming : proposer `/erom-research:nlm`, Romain décide.
+- Jamais d'auto-fire depuis un brainstorming : proposer `/erom-research:deep-notebook`, Romain décide.
 - **Suivi.** Approfondir un référentiel existant se fait sur son notebook_id (frontmatter du rapport), pas par un re-run : `nlm notebook query <notebook_id> "<question>"`. La skill `/notebook-chat` enveloppe cette commande mais n'est PAS fournie par ce plugin (skill personnelle `~/.claude/skills/notebook-chat/`) : sans elle, le CLI `nlm` fait le travail directement.
 - Quotas Google Pro : 500 notebooks × 300 sources, 500 chats/jour, 20 audios/jour. Un run = 1 notebook + 1 chat de synthèse : aucune pression.
-- Routage des quatre moteurs : `agy` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Routage des quatre moteurs : `deep-gemini` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `deep-claude` = même pipeline sans dépendance externe ni quota tiers ; `deep-grok` = second moteur indépendant hors quota Google ; `deep-notebook` = référentiel persistant à réinterroger dans le temps.

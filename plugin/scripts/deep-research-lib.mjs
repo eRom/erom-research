@@ -146,7 +146,7 @@ export function renderReportMarkdown(report, meta) {
   const L = []
   L.push([
     '---', `title: "${meta.title}"`, 'type: research',
-    `source_tool: ${meta.sourceTool || 'erom-research:agy'}`,
+    `source_tool: ${meta.sourceTool || 'erom-research:deep-gemini'}`,
     ...(meta.engine ? [`engine: ${meta.engine}`] : []),
     ...(meta.project ? [`project: ${meta.project}`] : []),
     `depth: ${meta.depth}`, `rounds: ${meta.rounds}`, `converged: ${meta.converged}`,

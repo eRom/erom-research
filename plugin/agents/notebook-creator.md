@@ -83,7 +83,7 @@ UN seul chat de synthèse par run (discipline quota, 500/jour partagés).
 ---
 title: "{TITLE}"
 type: research
-source_tool: erom-research:nlm
+source_tool: erom-research:deep-notebook
 engine: notebooklm
 project: {PROJECT}
 notebook_id: <notebook_id>

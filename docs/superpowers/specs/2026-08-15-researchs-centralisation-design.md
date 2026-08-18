@@ -61,7 +61,7 @@ sensitivity: internal
 
 ## Changements par moteur
 
-**agy** (`skills/agy/SKILL.md`) et **claude** (`skills/claude/SKILL.md`) - même mécanique Workflow :
+**agy** (`skills/deep-gemini/SKILL.md`) et **claude** (`skills/deep-claude/SKILL.md`) - même mécanique Workflow :
 - Préflight : `WRITE_FILE=$HOME/.claude/erom-plugin-artefacts/researchs/<DATE>-<SLUG>.md`, `DEEP_DIR=$HOME/.claude/erom-plugin-artefacts/researchs/.runs/<DATE>-<SLUG>`, plus capture `PROJECT=$(basename "$(pwd)")` et boucle anti-collision. Le `$HOME` expansé au préflight reste un chemin absolu littéral : le gotcha des chemins cwd-dépendants passés aux Workflows disparaît pour la sortie.
 - `meta` passé au render : ajout de `project: <PROJECT>`.
 - Descriptions des skills : « Sauve dans docs/research/… » → « Sauve dans ~/.claude/erom-plugin-artefacts/researchs/ ».
@@ -69,12 +69,12 @@ sensitivity: internal
 **`scripts/deep-research-lib.mjs`** :
 - `renderReportMarkdown()` : émettre `project: ${meta.project}` dans le frontmatter. Étendre les tests bun existants.
 
-**grok** (`skills/grok/SKILL.md` + `scripts/grok-deep`) - le moteur à normaliser :
+**grok** (`skills/deep-grok/SKILL.md` + `scripts/grok-deep`) - le moteur à normaliser :
 - La skill passe `--out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"` (run, status, list) et un nouveau flag `--project <basename>`.
 - `grok-deep` : rapport final nommé `<DATE>-<SLUG>.md` (slugification interne du sujet, même règle, anti-collision inclus) au lieu de `<run_id>.md` ; frontmatter canonique en tête du rapport (aujourd'hui absent) ; ses `.runs/<run_id>/` internes s'installent sous `researchs/.runs/` (nommage interne libre, non versionné, hors contrat).
 - Effet assumé : `grok-deep list` sur le central liste les runs grok cross-projets.
 
-**nlm** (`skills/nlm/SKILL.md` + `agents/notebook-creator.md`) :
+**nlm** (`skills/deep-notebook/SKILL.md` + `agents/notebook-creator.md`) :
 - Préflight : `OUT=$HOME/.claude/erom-plugin-artefacts/researchs/<DATE>-<SLUG>.md` + capture `PROJECT` + anti-collision.
 - La mission du subagent transmet `PROJECT` ; `notebook-creator` complète son frontmatter aux 5 champs obligatoires (il a déjà `engine`, `notebook_id`).
 

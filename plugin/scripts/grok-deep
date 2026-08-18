@@ -125,7 +125,7 @@ export function buildFrontmatter(query: string, project: string, createdIso: str
     "---",
     `title: ${JSON.stringify(query)}`,
     "type: research",
-    "source_tool: erom-research:grok",
+    "source_tool: erom-research:deep-grok",
     "engine: grok",
     `project: ${project}`,
     `created: ${createdIso}`,

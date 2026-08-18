@@ -8,23 +8,23 @@ _Mis à jour : 2026-08-15_
 
 | Skill | Moteur | Transport | Synchronicité |
 |---|---|---|---|
-| `agy` | Antigravity CLI (Gemini groundé Google) | Workflow `deep-research.js` + subagents | bloquant, 5-15 min |
-| `grok` | Grok CLI, workflow builtin `deep-research` | CLI wrapper `grok-deep` | asynchrone (`run_in_background`) |
-| `nlm` | NotebookLM (CLI `nlm`) | subagent `notebook-creator` (`background: true`) | asynchrone, 10-20 min |
-| `claude` | Subagents Claude natifs (WebSearch/WebFetch) | Workflow `deep-research.js` + subagents `claude-run` | bloquant, 5-15 min |
+| `deep-gemini` | Antigravity CLI (Gemini groundé Google) | Workflow `deep-research.js` + subagents | bloquant, 5-15 min |
+| `deep-grok` | Grok CLI, workflow builtin `deep-research` | CLI wrapper `grok-deep` | asynchrone (`run_in_background`) |
+| `deep-notebook` | NotebookLM (CLI `nlm`) | subagent `notebook-creator` (`background: true`) | asynchrone, 10-20 min |
+| `deep-claude` | Subagents Claude natifs (WebSearch/WebFetch) | Workflow `deep-research.js` + subagents `claude-run` | bloquant, 5-15 min |
 
 **Stack** : markdown (skills, agents), JS/ESM (Workflow + lib de rendu), Python 3 (runners agy), TypeScript sur Bun (CLI grok-deep).
 
 ```
 .claude-plugin/plugin.json   manifeste
-skills/{agy,claude,grok,nlm}/SKILL.md
+skills/{deep-gemini,deep-claude,deep-grok,deep-notebook}/SKILL.md
 agents/                      agy-run.md, claude-run.md, notebook-creator.md
 scripts/                     deep-research.js, deep-research-lib.mjs, render-report.mjs,
                              agy_scratch.py, recover_transcript.py, grok-deep
 scripts/tests/               bun (2 fichiers) + python (1 fichier)
 ```
 
-**Flux agy** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-research.js)` → N angles en parallèle par round via subagents `erom-research:agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
+**Flux deep-gemini** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-research.js)` → N angles en parallèle par round via subagents `erom-research:agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
 
 **Sorties** (0.5.0) : store central `~/.claude/erom-plugin-artefacts/researchs/` (plat, `<date>-<slug>.md`, frontmatter canonique title/type/engine/project/created ; artefacts sous `.runs/`, gitignorés ; versionnement par le nightly de `~/.claude`, aucune commande git dans les skills). Plus rien dans le projet courant.
 

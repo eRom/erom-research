@@ -1,4 +1,4 @@
-# erom-research:claude, moteur natif sous le pipeline deep-research
+# erom-research:deep-claude, moteur natif sous le pipeline deep-research
 
 Date : 2026-08-12
 Statut : design validé, prêt pour plan d'implémentation
@@ -201,10 +201,10 @@ vérification n'a pas pu se prononcer), rendu dans la section Couverture.
 ## Sortie
 
 `renderReportMarkdown` prend `meta.sourceTool` au lieu de la chaîne
-`erom-research:agy` codée en dur ligne 122, et le frontmatter porte l'engine :
+`erom-research:deep-gemini` codée en dur ligne 122, et le frontmatter porte l'engine :
 
 ```yaml
-source_tool: erom-research:claude
+source_tool: erom-research:deep-claude
 engine: claude
 depth: H
 rounds: 3
@@ -237,7 +237,7 @@ l'engine.
 
 ## Plan gate
 
-Actif par défaut sur `/erom-research:claude` comme sur agy, avec `--yes` pour le
+Actif par défaut sur `/erom-research:deep-claude` comme sur agy, avec `--yes` pour le
 sauter. La cohérence entre les deux moteurs prime sur le fait qu'un run claude
 soit moins cher.
 
@@ -261,9 +261,9 @@ Ajouts :
 Ordre imposé, après implémentation :
 
 1. Suite de tests verte (bun + python).
-2. Run `/erom-research:agy` sur un sujet réel, depth `L`, pour vérifier que le
+2. Run `/erom-research:deep-gemini` sur un sujet réel, depth `L`, pour vérifier que le
    moteur historique tourne encore de bout en bout et rend un rapport.
-3. Run `/erom-research:claude` sur le même sujet, pour comparer les deux moteurs à
+3. Run `/erom-research:deep-claude` sur le même sujet, pour comparer les deux moteurs à
    pipeline strictement identique.
 
 Si le run agy échoue, distinguer les causes avant toute conclusion :

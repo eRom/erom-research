@@ -10,7 +10,7 @@ test("buildFrontmatter: canonique, title JSON-quoté, se termine par --- et lign
   expect(lines[0]).toBe("---");
   expect(lines[1]).toBe('title: "Sujet avec \\"quotes\\""');
   expect(fm).toContain("type: research");
-  expect(fm).toContain("source_tool: erom-research:grok");
+  expect(fm).toContain("source_tool: erom-research:deep-grok");
   expect(fm).toContain("engine: grok");
   expect(fm).toContain("project: mediacenter");
   expect(fm).toContain("created: 2026-08-15");

@@ -1,6 +1,6 @@
 ---
-name: claude
-description: "Deep research multi-rounds via subagents Claude natifs (WebSearch/WebFetch, sans navigateur externe) : matrice de preuves + plan que tu valides, angles browsés en parallèle par des subagents `erom-research:claude-run`, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse. Quatrième moteur du plugin, sans binaire ni auth externe : consomme uniquement le quota Anthropic de la session. Triggers : /erom-research:claude, 'deep claude', 'deep research native', 'recherche multi-rounds sans agy'. Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
+name: deep-claude
+description: "Deep research multi-rounds via subagents Claude natifs (WebSearch/WebFetch, sans navigateur externe) : matrice de preuves + plan que tu valides, angles browsés en parallèle par des subagents `erom-research:claude-run`, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse. Quatrième moteur du plugin, sans binaire ni auth externe : consomme uniquement le quota Anthropic de la session. Triggers : /erom-research:deep-claude, 'deep claude', 'deep research native', 'recherche multi-rounds sans agy'. Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
@@ -40,7 +40,7 @@ echo "DEEP_DIR=$RESEARCH_DIR/.runs/$BASE"
 echo "PROJECT=$(basename "$(pwd)")"
 test -f "<SCRIPT>" && test -f "<RENDER>" && echo "PLUGIN_OK" || echo "PLUGIN_BROKEN"
 ```
-`PLUGIN_BROKEN` → le plugin `erom-research` est mal installé (ou `SCRIPT`/`RENDER` mal résolus) : STOP, ne lance pas le Workflow. Pas de vérification de binaire ni de circuit-breaker quota ici, contrairement à agy : `claude-run` n'a aucune dépendance externe, seul le quota Anthropic de la session s'applique.
+`PLUGIN_BROKEN` → le plugin `erom-research` est mal installé (ou `SCRIPT`/`RENDER` mal résolus) : STOP, ne lance pas le Workflow. Pas de vérification de binaire ni de circuit-breaker quota ici, contrairement à `deep-gemini` : `claude-run` n'a aucune dépendance externe, seul le quota Anthropic de la session s'applique.
 
 ## Étape 2 - Matrice de preuves + angles (Claude raisonne, sans tool)
 
@@ -50,7 +50,7 @@ Décompose `<sujet>` en :
 
 ## Étape 3 - Plan gate (sauté si `--yes`)
 
-Montre la matrice + les angles (table compacte) et attends un go explicite ou des edits. Applique les edits puis re-montre si non triviaux. Avec `--yes`, saute cette étape. Le gate est actif par défaut, au même titre que sur agy.
+Montre la matrice + les angles (table compacte) et attends un go explicite ou des edits. Applique les edits puis re-montre si non triviaux. Avec `--yes`, saute cette étape. Le gate est actif par défaut, au même titre que sur `deep-gemini`.
 
 ## Étape 4 - Lancer le Workflow
 
@@ -69,7 +69,7 @@ N'écris pas le markdown à la main. Écris `{ report, meta }` dans `<DEEP_DIR>/
 ```bash
 node "<RENDER de l'Étape 0>" "<DEEP_DIR>/_render.json" > "<WRITE_FILE>"
 ```
-où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:claude', engine:'claude', project:'<PROJECT>' }`.
+où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:deep-claude', engine:'claude', project:'<PROJECT>' }`.
 (`render-report.mjs` importe la lib en spécifieur relatif : ne jamais inliner le chemin de la lib dans un `node -e`.)
 
 ## Étape 6 - Retour
@@ -98,5 +98,5 @@ n'ont ni confirmés ni réfutés (vérificateur en échec), pas des claims rejet
 
 ## Notes
 - Cette skill ne parle jamais aux subagents de recherche directement : chaque appel se fait dans le Workflow, un subagent `erom-research:claude-run` par angle (WebSearch/WebFetch uniquement, aucune écriture disque) ; la vérification des claims est faite par des agents Claude natifs, comme pour les autres moteurs. Un angle qui échoue revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
-- Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:claude` aux décisions où la justesse prime et où tu veux éviter toute dépendance externe (pas de binaire, pas d'auth, pas de quota tiers).
-- Routage des quatre moteurs : `agy` = justesse pilotée via Gemini groundé Google (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:deep-claude` aux décisions où la justesse prime et où tu veux éviter toute dépendance externe (pas de binaire, pas d'auth, pas de quota tiers).
+- Routage des quatre moteurs : `deep-gemini` = justesse pilotée via Gemini groundé Google (matrice, plan gate, vote 3 voix) ; `deep-claude` = même pipeline sans dépendance externe ni quota tiers ; `deep-grok` = second moteur indépendant hors quota Google ; `deep-notebook` = référentiel persistant à réinterroger dans le temps.

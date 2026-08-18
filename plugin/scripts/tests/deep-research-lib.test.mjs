@@ -51,12 +51,12 @@ test('applyRedTeam kills, downgrades, holds', () => {
   expect(r.find(f => f.claim === 'd').confidence).toBe('low')
 })
 
-test('renderReportMarkdown: sourceTool paramétrable, défaut agy', () => {
+test('renderReportMarkdown: sourceTool paramétrable, défaut deep-gemini', () => {
   const report = { tldr: [], findings: [], coverage: {}, conclusion: { recommendation: 'R', overallConfidence: 'high' }, references: [] }
   const base = { title: 'T', depth: 'L', rounds: 1, converged: true, date: '2026-08-12' }
-  expect(renderReportMarkdown(report, base)).toContain('source_tool: erom-research:agy')
-  const claude = renderReportMarkdown(report, { ...base, sourceTool: 'erom-research:claude', engine: 'claude' })
-  expect(claude).toContain('source_tool: erom-research:claude')
+  expect(renderReportMarkdown(report, base)).toContain('source_tool: erom-research:deep-gemini')
+  const claude = renderReportMarkdown(report, { ...base, sourceTool: 'erom-research:deep-claude', engine: 'claude' })
+  expect(claude).toContain('source_tool: erom-research:deep-claude')
   expect(claude).toContain('engine: claude')
 })
 

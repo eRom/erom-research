@@ -168,7 +168,7 @@ test("buildFrontmatter: canonique, title JSON-quoté, se termine par --- et lign
   expect(lines[0]).toBe("---");
   expect(lines[1]).toBe('title: "Sujet avec \\"quotes\\""');
   expect(fm).toContain("type: research");
-  expect(fm).toContain("source_tool: erom-research:grok");
+  expect(fm).toContain("source_tool: erom-research:deep-grok");
   expect(fm).toContain("engine: grok");
   expect(fm).toContain("project: mediacenter");
   expect(fm).toContain("created: 2026-08-15");
@@ -237,7 +237,7 @@ export function buildFrontmatter(query: string, project: string, createdIso: str
     "---",
     `title: ${JSON.stringify(query)}`,
     "type: research",
-    "source_tool: erom-research:grok",
+    "source_tool: erom-research:deep-grok",
     "engine: grok",
     `project: ${project}`,
     `created: ${createdIso}`,
@@ -336,8 +336,8 @@ git commit -m "feat(research): grok-deep normalise, frontmatter canonique et out
 
 **Files:**
 - Create: `~/.claude/erom-plugin-artefacts/researchs/.gitignore` (hors repo, non committé ici : le nightly de `~/.claude` s'en charge)
-- Modify: `plugin/skills/agy/SKILL.md` (description ligne 3, texte ligne 30, préflight lignes 32-38, meta ligne 90)
-- Modify: `plugin/skills/claude/SKILL.md` (description ligne 3, texte ligne 30, préflight lignes 33-38, meta ligne 68)
+- Modify: `plugin/skills/deep-gemini/SKILL.md` (description ligne 3, texte ligne 30, préflight lignes 32-38, meta ligne 90)
+- Modify: `plugin/skills/deep-claude/SKILL.md` (description ligne 3, texte ligne 30, préflight lignes 33-38, meta ligne 68)
 
 **Interfaces:**
 - Consumes: `renderReportMarkdown` avec `meta.project` (Task 1).
@@ -355,7 +355,7 @@ RAPPEL du Global Constraint anti-cadratin : ces deux SKILL.md contiennent des ti
 
 - [x] **Step 2: Préflight agy**
 
-Dans `plugin/skills/agy/SKILL.md`, Edit avec :
+Dans `plugin/skills/deep-gemini/SKILL.md`, Edit avec :
 
 old_string :
 
@@ -381,7 +381,7 @@ echo "PROJECT=$(basename "$(pwd)")"
 
 - [x] **Step 3: Texte des chemins, meta et description agy**
 
-Trois Edits chirurgicaux dans `plugin/skills/agy/SKILL.md` (chaque old_string apparaît exactement une fois ; les backticks des blocs ci-dessous sont littéraux, à reprendre tels quels) :
+Trois Edits chirurgicaux dans `plugin/skills/deep-gemini/SKILL.md` (chaque old_string apparaît exactement une fois ; les backticks des blocs ci-dessous sont littéraux, à reprendre tels quels) :
 
 a) old_string :
 
@@ -400,13 +400,13 @@ Le préflight imprime `WRITE_FILE`, `DEEP_DIR` et `PROJECT` (chemins absolus, `$
 b) old_string :
 
 ```
-sourceTool:'erom-research:agy', engine:'agy' }
+sourceTool:'erom-research:deep-gemini', engine:'agy' }
 ```
 
 new_string :
 
 ```
-sourceTool:'erom-research:agy', engine:'agy', project:'<PROJECT>' }
+sourceTool:'erom-research:deep-gemini', engine:'agy', project:'<PROJECT>' }
 ```
 
 c) old_string :
@@ -423,7 +423,7 @@ Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 
 - [x] **Step 4: Mêmes changements pour claude**
 
-Quatre Edits dans `plugin/skills/claude/SKILL.md` :
+Quatre Edits dans `plugin/skills/deep-claude/SKILL.md` :
 
 a) Préflight. old_string :
 
@@ -462,13 +462,13 @@ Le préflight imprime `WRITE_FILE`, `DEEP_DIR` et `PROJECT` (chemins absolus, `$
 c) old_string :
 
 ```
-sourceTool:'erom-research:claude', engine:'claude' }
+sourceTool:'erom-research:deep-claude', engine:'claude' }
 ```
 
 new_string :
 
 ```
-sourceTool:'erom-research:claude', engine:'claude', project:'<PROJECT>' }
+sourceTool:'erom-research:deep-claude', engine:'claude', project:'<PROJECT>' }
 ```
 
 d) old_string :
@@ -492,7 +492,7 @@ RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
 BASE="2026-08-15-fixture-verification"; N=2
 while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="2026-08-15-fixture-verification-$N"; N=$((N+1)); done
 mkdir -p "$RESEARCH_DIR/.runs/$BASE"
-printf '%s\n' '{"report":{"tldr":["ok"],"findings":[],"coverage":{"anglesCompleted":1,"anglesFailed":0},"conclusion":{"recommendation":"R","overallConfidence":"high"},"references":[]},"meta":{"title":"Fixture","depth":"L","rounds":1,"converged":true,"date":"2026-08-15","sourceTool":"erom-research:claude","engine":"claude","project":"erom-agence-deep-research"}}' > "$RESEARCH_DIR/.runs/$BASE/_render.json"
+printf '%s\n' '{"report":{"tldr":["ok"],"findings":[],"coverage":{"anglesCompleted":1,"anglesFailed":0},"conclusion":{"recommendation":"R","overallConfidence":"high"},"references":[]},"meta":{"title":"Fixture","depth":"L","rounds":1,"converged":true,"date":"2026-08-15","sourceTool":"erom-research:deep-claude","engine":"claude","project":"erom-agence-deep-research"}}' > "$RESEARCH_DIR/.runs/$BASE/_render.json"
 node plugin/scripts/render-report.mjs "$RESEARCH_DIR/.runs/$BASE/_render.json" > "$RESEARCH_DIR/$BASE.md"
 head -12 "$RESEARCH_DIR/$BASE.md"
 git -C ~/.claude status --porcelain -- erom-plugin-artefacts/researchs/
@@ -503,7 +503,7 @@ Expected: le head montre le frontmatter avec `title`, `type`, `source_tool`, `en
 - [x] **Step 6: Commit**
 
 ```bash
-git add plugin/skills/agy/SKILL.md plugin/skills/claude/SKILL.md
+git add plugin/skills/deep-gemini/SKILL.md plugin/skills/deep-claude/SKILL.md
 git commit -m "feat(research): skills agy et claude ecrivent au store central avec project"
 ```
 
@@ -512,7 +512,7 @@ git commit -m "feat(research): skills agy et claude ecrivent au store central av
 ### Task 4: Skill grok
 
 **Files:**
-- Modify: `plugin/skills/grok/SKILL.md`
+- Modify: `plugin/skills/deep-grok/SKILL.md`
 
 **Interfaces:**
 - Consumes: `grok-deep` avec `--out-dir`, `--project` et events JSON `status_path`/`report_path` (Task 2).
@@ -522,7 +522,7 @@ RAPPEL anti-cadratin : ce fichier contient des tirets cadratins. Edits chirurgic
 
 - [x] **Step 1: Commandes vers le store central**
 
-Trois Edits dans `plugin/skills/grok/SKILL.md` :
+Trois Edits dans `plugin/skills/deep-grok/SKILL.md` :
 
 a) old_string : `"<CLI>" run "<sujet>" --out-dir "$(pwd)/docs/research/grok" [--budget N]`
    new_string : `"<CLI>" run "<sujet>" --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs" --project "$(basename "$(pwd)")" [--budget N]`
@@ -574,7 +574,7 @@ Expected: `Aucun run sous /Users/recarnot/.claude/erom-plugin-artefacts/research
 - [x] **Step 5: Commit**
 
 ```bash
-git add plugin/skills/grok/SKILL.md
+git add plugin/skills/deep-grok/SKILL.md
 git commit -m "feat(research): skill grok pointe le store central, chemins via enveloppe JSON"
 ```
 
@@ -583,7 +583,7 @@ git commit -m "feat(research): skill grok pointe le store central, chemins via e
 ### Task 5: Skill nlm + agent notebook-creator
 
 **Files:**
-- Modify: `plugin/skills/nlm/SKILL.md`
+- Modify: `plugin/skills/deep-notebook/SKILL.md`
 - Modify: `plugin/agents/notebook-creator.md`
 
 **Interfaces:**
@@ -594,7 +594,7 @@ RAPPEL anti-cadratin : ces fichiers contiennent des tirets cadratins. Edits chir
 
 - [x] **Step 1: Préflight nlm**
 
-Dans `plugin/skills/nlm/SKILL.md`, Edit avec :
+Dans `plugin/skills/deep-notebook/SKILL.md`, Edit avec :
 
 old_string :
 
@@ -661,7 +661,7 @@ new_string :
 ---
 title: "{TITLE}"
 type: research
-source_tool: erom-research:nlm
+source_tool: erom-research:deep-notebook
 engine: notebooklm
 project: {PROJECT}
 notebook_id: <notebook_id>
@@ -687,13 +687,13 @@ new_string :
 
 - [x] **Step 5: Balayage de cohérence**
 
-Run: `grep -n "docs/research" plugin/skills/nlm/SKILL.md plugin/agents/notebook-creator.md; echo "exit=$?"`
+Run: `grep -n "docs/research" plugin/skills/deep-notebook/SKILL.md plugin/agents/notebook-creator.md; echo "exit=$?"`
 Expected: aucune occurrence, `exit=1`. La mention « notebook_id + URL (frontmatter) » au point 5 de la skill reste vraie avec le nouveau template : aucune modification.
 
 - [x] **Step 6: Commit**
 
 ```bash
-git add plugin/skills/nlm/SKILL.md plugin/agents/notebook-creator.md
+git add plugin/skills/deep-notebook/SKILL.md plugin/agents/notebook-creator.md
 git commit -m "feat(research): skill nlm au store central, frontmatter canonique notebook-creator"
 ```
 

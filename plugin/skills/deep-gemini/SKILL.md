@@ -1,6 +1,6 @@
 ---
-name: agy
-description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:agy, 'deep agy', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
+name: deep-gemini
+description: "Deep research multi-rounds via agy (browsing Gemini groundé Google) — matrice de preuves + plan que tu valides, angles browsés en parallèle, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse et recommandation appliquée. Pour les décisions lourdes où la justesse prime sur la vitesse. Triggers : /erom-research:deep-gemini, 'deep agy', 'deep gemini', 'deep research approfondie', 'recherche multi-rounds'. Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
@@ -53,7 +53,7 @@ Règle du workflow, non négociable :
 - **Dès qu'un stage rend 3**, ne dispatcher aucun round supplémentaire. Terminer le round en cours
   (les agents déjà lancés vivront leur vie), puis STOP.
 - **Rapport immédiat à Romain** : nombre d'angles aboutis / tentés, délai de reset annoncé par agy,
-  et la proposition de bascule sur `/erom-research:grok` (hors quota Google) ou de reprise après reset.
+  et la proposition de bascule sur `/erom-research:deep-grok` (hors quota Google) ou de reprise après reset.
 - **Ne jamais relancer automatiquement** après un reset : c'est un arbitrage de Romain, pas du workflow.
 
 Un pré-vol `agy --version` prouve que le binaire est là, **jamais** qu'il reste du budget : quota
@@ -91,7 +91,7 @@ N'écris pas le markdown à la main. Écris `{ report, meta }` dans `<DEEP_DIR>/
 ```bash
 node "<RENDER de l'Étape 0>" "<DEEP_DIR>/_render.json" > "<WRITE_FILE>"
 ```
-où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:agy', engine:'agy', project:'<PROJECT>' }`.
+où `meta = { title:<sujet>, depth:<L|H>, rounds:<result.rounds>, converged:<result.converged>, date:<DATE>, sourceTool:'erom-research:deep-gemini', engine:'agy', project:'<PROJECT>' }`.
 (`render-report.mjs` importe la lib en spécifieur relatif — ne jamais inliner le chemin de la lib dans un `node -e`.)
 
 ## Étape 6 — Retour
@@ -120,5 +120,5 @@ n'ont ni confirmés ni réfutés (vérificateur en échec), pas des claims rejet
 
 ## Notes
 - Cette skill ne parle jamais à agy directement : chaque appel agy se fait dans le Workflow, un subagent `erom-research:agy-run` par angle ; la vérification des claims est faite par des agents Claude natifs, y compris en mode agy, pour ne pas consommer trois appels de quota Google par claim. Un agy cassé en cours → l'angle revient `failed`, la couverture se dégrade (notée dans `coverage.failedAngleLabels`) sans crasher le run.
-- Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:agy` aux décisions où la justesse prime.
-- Routage des quatre moteurs : `agy` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `claude` = même pipeline sans dépendance externe ni quota tiers ; `grok` = second moteur indépendant hors quota Google ; `nlm` = référentiel persistant à réinterroger dans le temps.
+- Une recherche web ordinaire reste la voie rapide au quotidien ; réserve `/erom-research:deep-gemini` aux décisions où la justesse prime.
+- Routage des quatre moteurs : `deep-gemini` = justesse pilotée (matrice, plan gate, vote 3 voix) ; `deep-claude` = même pipeline sans dépendance externe ni quota tiers ; `deep-grok` = second moteur indépendant hors quota Google ; `deep-notebook` = référentiel persistant à réinterroger dans le temps.

@@ -12,10 +12,10 @@ _Mis à jour : 2026-08-15_
 
 | Fichier | Rôle |
 |---|---|
-| `skills/agy/SKILL.md` | Pilote le Workflow multi-rounds : Étape 0 chemins plugin, préflight, matrice + angles, gate plan, Workflow, rendu. |
-| `skills/claude/SKILL.md` | Même pipeline que agy, moteur de collecte natif (`claude-run`, WebSearch/WebFetch) : aucun préflight de binaire, aucun circuit-breaker quota. |
-| `skills/grok/SKILL.md` | Enveloppe le CLI `grok-deep` en 3 modes : start (background), status, list. |
-| `skills/nlm/SKILL.md` | Préflight auth `nlm`, spawn du subagent `erom-research:notebook-creator`, restitution à la notification. |
+| `skills/deep-gemini/SKILL.md` | Pilote le Workflow multi-rounds : Étape 0 chemins plugin, préflight, matrice + angles, gate plan, Workflow, rendu. |
+| `skills/deep-claude/SKILL.md` | Même pipeline que deep-gemini, moteur de collecte natif (`claude-run`, WebSearch/WebFetch) : aucun préflight de binaire, aucun circuit-breaker quota. |
+| `skills/deep-grok/SKILL.md` | Enveloppe le CLI `grok-deep` en 3 modes : start (background), status, list. |
+| `skills/deep-notebook/SKILL.md` | Préflight auth `nlm`, spawn du subagent `erom-research:notebook-creator`, restitution à la notification. |
 
 ## Agents
 

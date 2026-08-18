@@ -5,7 +5,7 @@ _Mis à jour : 2026-08-15_
 ## Nommage
 
 - Convention 2026-07-30 : plugin `erom-research` = nom du dépôt GitHub `eRom/erom-research` (le dossier local reste `erom-agence-deep-research`, choix assumé pour ne pas casser terminaux et scripts).
-- Skills : le nom du moteur seul, jamais le domaine — `agy`, `claude`, `grok`, `nlm`. Invocation : `/erom-research:<moteur>`.
+- Skills (convention 2026-08-18) : préfixe `deep-` + moteur, jamais le domaine — `deep-gemini`, `deep-claude`, `deep-grok`, `deep-notebook`. Invocation : `/erom-research:deep-<moteur>`. Le préfixe existe parce que le TUI n'affiche que le nom court de la skill une fois sélectionnée : `agy` seul ne disait pas de quoi il s'agissait. Les identifiants internes (`engines: "agy"`, agents `agy-run` / `claude-run`, binaires) ne portent PAS le préfixe : ils nomment le moteur, pas la commande.
 - Toute référence croisée interne est **namespacée** : `agentType: 'erom-research:agy-run'`, `subagent_type: "erom-research:notebook-creator"`. Un nom nu résoudrait vers un agent utilisateur et casserait l'autonomie.
 
 ## Chemins du plugin
