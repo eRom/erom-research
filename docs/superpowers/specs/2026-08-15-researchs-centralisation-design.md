@@ -3,7 +3,7 @@ status: proposed
 date: 2026-08-15
 ---
 
-# Centralisation des sorties research dans `~/.claude/erom-plugin-artefacts/researchs/`
+# Centralisation des sorties research dans `~/.claude/erom-store/researchs/`
 
 ## Contexte et objectif
 
@@ -11,14 +11,14 @@ Les 4 moteurs du plugin `erom-research` (agy, claude, grok, nlm) écrivent aujou
 
 Objectif : un dépôt central unique, versionné, dans lequel les 4 skills écrivent, et sur lequel une future skill `list` pourra s'appuyer sans index à maintenir.
 
-Destination : `$HOME/.claude/erom-plugin-artefacts/researchs/`. Le toplevel git est `~/.claude` (repo `eRom/claude-code-config`, vérifié **privé** le 2026-08-15), dont le `.gitignore` ré-inclut déjà `!/erom-plugin-artefacts/`.
+Destination : `$HOME/.claude/erom-store/researchs/`. Le toplevel git est `~/.claude` (repo `eRom/claude-code-config`, vérifié **privé** le 2026-08-15), dont le `.gitignore` ré-inclut déjà `!/erom-store/`.
 
 ## Décisions actées (2026-08-15)
 
 1. **Layout plat daté, frontmatter comme index.** Un fichier `<DATE>-<SLUG>.md` par recherche à la racine de `researchs/`. Tous les axes de requête (moteur, projet d'origine, date, profondeur) vivent dans le frontmatter YAML.
    **Battu :** partition par moteur (le moteur est une provenance, pas un axe de recherche) ; un dossier par recherche (le livrable est toujours un seul markdown, les annexes sont des artefacts de travail) ; partition par année (YAGNI, migration mécanique possible plus tard car le nom porte la date).
 2. **Le dossier garde le nom `researchs`** (cohérence de pluriel avec le voisin `insights/`).
-   **Battu :** `research` (anglais correct mais rupture avec la convention locale des dossiers d'`erom-plugin-artefacts/`).
+   **Battu :** `research` (anglais correct mais rupture avec la convention locale des dossiers d'`erom-store/`).
 3. **Artefacts de travail centralisés, non versionnés.** Les ex-`.deep/` (transcripts d'angles, `_render.json`) et `.runs/` (status grok) vont dans `researchs/.runs/<nom-du-run>/`, gitignorés. Un seul endroit à connaître pour le recovery d'un run raté, sans pousser des Mo de transcripts purgeables dans le repo.
    **Battu :** artefacts laissés dans le projet de lancement (recovery dépendant du projet) ; artefacts versionnés (volume pour une valeur décroissante).
 4. **Pas de migration de l'existant.** Seul le flux futur alimente le central ; les anciens `docs/research/` restent où ils sont.
@@ -29,7 +29,7 @@ Destination : `$HOME/.claude/erom-plugin-artefacts/researchs/`. Le toplevel git 
 ## Layout cible
 
 ```
-~/.claude/erom-plugin-artefacts/researchs/
+~/.claude/erom-store/researchs/
   .gitignore                      # contient : .runs/
   .runs/<DATE>-<SLUG>/            # artefacts agy/claude (ex-.deep), non versionnés
   .runs/<run interne grok>/       # status.json grok (nommage interne libre, hors contrat)
@@ -62,23 +62,23 @@ sensitivity: internal
 ## Changements par moteur
 
 **agy** (`skills/deep-gemini/SKILL.md`) et **claude** (`skills/deep-claude/SKILL.md`) - même mécanique Workflow :
-- Préflight : `WRITE_FILE=$HOME/.claude/erom-plugin-artefacts/researchs/<DATE>-<SLUG>.md`, `DEEP_DIR=$HOME/.claude/erom-plugin-artefacts/researchs/.runs/<DATE>-<SLUG>`, plus capture `PROJECT=$(basename "$(pwd)")` et boucle anti-collision. Le `$HOME` expansé au préflight reste un chemin absolu littéral : le gotcha des chemins cwd-dépendants passés aux Workflows disparaît pour la sortie.
+- Préflight : `WRITE_FILE=$HOME/.claude/erom-store/researchs/<DATE>-<SLUG>.md`, `DEEP_DIR=$HOME/.claude/erom-store/researchs/.runs/<DATE>-<SLUG>`, plus capture `PROJECT=$(basename "$(pwd)")` et boucle anti-collision. Le `$HOME` expansé au préflight reste un chemin absolu littéral : le gotcha des chemins cwd-dépendants passés aux Workflows disparaît pour la sortie.
 - `meta` passé au render : ajout de `project: <PROJECT>`.
-- Descriptions des skills : « Sauve dans docs/research/… » → « Sauve dans ~/.claude/erom-plugin-artefacts/researchs/ ».
+- Descriptions des skills : « Sauve dans docs/research/… » → « Sauve dans ~/.claude/erom-store/researchs/ ».
 
 **`scripts/deep-research-lib.mjs`** :
 - `renderReportMarkdown()` : émettre `project: ${meta.project}` dans le frontmatter. Étendre les tests bun existants.
 
 **grok** (`skills/deep-grok/SKILL.md` + `scripts/grok-deep`) - le moteur à normaliser :
-- La skill passe `--out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"` (run, status, list) et un nouveau flag `--project <basename>`.
+- La skill passe `--out-dir "$HOME/.claude/erom-store/researchs"` (run, status, list) et un nouveau flag `--project <basename>`.
 - `grok-deep` : rapport final nommé `<DATE>-<SLUG>.md` (slugification interne du sujet, même règle, anti-collision inclus) au lieu de `<run_id>.md` ; frontmatter canonique en tête du rapport (aujourd'hui absent) ; ses `.runs/<run_id>/` internes s'installent sous `researchs/.runs/` (nommage interne libre, non versionné, hors contrat).
 - Effet assumé : `grok-deep list` sur le central liste les runs grok cross-projets.
 
 **nlm** (`skills/deep-notebook/SKILL.md` + `agents/notebook-creator.md`) :
-- Préflight : `OUT=$HOME/.claude/erom-plugin-artefacts/researchs/<DATE>-<SLUG>.md` + capture `PROJECT` + anti-collision.
+- Préflight : `OUT=$HOME/.claude/erom-store/researchs/<DATE>-<SLUG>.md` + capture `PROJECT` + anti-collision.
 - La mission du subagent transmet `PROJECT` ; `notebook-creator` complète son frontmatter aux 5 champs obligatoires (il a déjà `engine`, `notebook_id`).
 
-**Nouveau fichier** : `~/.claude/erom-plugin-artefacts/researchs/.gitignore` contenant `.runs/`.
+**Nouveau fichier** : `~/.claude/erom-store/researchs/.gitignore` contenant `.runs/`.
 
 ## Hors périmètre
 
@@ -89,7 +89,7 @@ sensitivity: internal
 
 ## Critères de succès
 
-1. Un run de chaque moteur écrit son rapport dans `~/.claude/erom-plugin-artefacts/researchs/<DATE>-<SLUG>.md` avec les 5 champs obligatoires du frontmatter, dont `project`.
+1. Un run de chaque moteur écrit son rapport dans `~/.claude/erom-store/researchs/<DATE>-<SLUG>.md` avec les 5 champs obligatoires du frontmatter, dont `project`.
 2. Après un run, `git -C ~/.claude status` ne montre aucun artefact de travail : seul le rapport apparaît, en untracked, pris en charge par le backup nightly (décision 5).
 3. Le rapport grok est nommé `<DATE>-<SLUG>.md` et porte le frontmatter canonique.
 4. Plus aucune écriture dans `docs/research/` du projet courant par les 4 skills.

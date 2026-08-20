@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "erom-research",
-  "description": "Quatre moteurs de deep research complémentaires : deep-gemini (agy/Antigravity, multi-rounds piloté par Claude, matrice de preuves, gate plan, vote 3 voix), deep-claude (même pipeline via subagents natifs, sans dépendance externe), deep-grok (moteur indépendant asynchrone hors quota Google) et deep-notebook (NotebookLM, référentiel persistant de 40-70 sources, réinterrogeable). Rapports cités centralisés dans ~/.claude/erom-plugin-artefacts/researchs/ (frontmatter avec projet d'origine).",
-  "version": "0.8.0",
+  "description": "Quatre moteurs de deep research complémentaires : deep-gemini (agy/Antigravity, multi-rounds piloté par Claude, matrice de preuves, gate plan, vote 3 voix), deep-claude (même pipeline via subagents natifs, sans dépendance externe), deep-grok (moteur indépendant asynchrone hors quota Google) et deep-notebook (NotebookLM, référentiel persistant de 40-70 sources, réinterrogeable). Rapports cités centralisés dans ~/.claude/erom-store/researchs/ (frontmatter avec projet d'origine).",
+  "version": "0.9.0",
   "author": {
     "name": "Romain Ecarnot",
     "url": "https://github.com/eRom"

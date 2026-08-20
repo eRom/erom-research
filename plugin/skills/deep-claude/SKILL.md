@@ -1,6 +1,6 @@
 ---
 name: deep-claude
-description: "Deep research multi-rounds via subagents Claude natifs (WebSearch/WebFetch, sans navigateur externe) : matrice de preuves + plan que tu valides, angles browsés en parallèle par des subagents `erom-research:claude-run`, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse. Quatrième moteur du plugin, sans binaire ni auth externe : consomme uniquement le quota Anthropic de la session. Triggers : /erom-research:deep-claude, 'deep claude', 'deep research native', 'recherche multi-rounds sans agy'. Sauve dans ~/.claude/erom-plugin-artefacts/researchs/."
+description: "Deep research multi-rounds via subagents Claude natifs (WebSearch/WebFetch, sans navigateur externe) : matrice de preuves + plan que tu valides, angles browsés en parallèle par des subagents `erom-research:claude-run`, analyse de convergence, vote adversarial à trois voix, rapport cité avec tags preuve/inférence/hypothèse. Quatrième moteur du plugin, sans binaire ni auth externe : consomme uniquement le quota Anthropic de la session. Triggers : /erom-research:deep-claude, 'deep claude', 'deep research native', 'recherche multi-rounds sans agy'. Sauve dans ~/.claude/erom-store/researchs/."
 user-invocable: true
 allowed-tools: Bash, Write, Read, Workflow, Agent
 ---
@@ -31,7 +31,7 @@ Si `${CLAUDE_PLUGIN_ROOT}` te parvient non expansé, résous-le : deux niveaux a
 - `DEEP_DIR` ne recevra que `_render.json` (Étape 5) en mode claude : `claude-run` n'a que `WebSearch` et `WebFetch` comme tools, il ne peut rien écrire sur disque, contrairement à `agy-run` qui y dépose un markdown par angle. Le `mkdir -p` ci-dessous reste nécessaire pour que `_render.json` ait un dossier où atterrir.
 
 ```bash
-RESEARCH_DIR="$HOME/.claude/erom-plugin-artefacts/researchs"
+RESEARCH_DIR="$HOME/.claude/erom-store/researchs"
 BASE="<DATE>-<SLUG>"; N=2
 while test -e "$RESEARCH_DIR/$BASE.md"; do BASE="<DATE>-<SLUG>-$N"; N=$((N+1)); done
 mkdir -p "$RESEARCH_DIR/.runs/$BASE"

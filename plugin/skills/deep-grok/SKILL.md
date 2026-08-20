@@ -1,6 +1,6 @@
 ---
 name: deep-grok
-description: "Deep research asynchrone via le workflow builtin /deep-research de Grok CLI (Grok 4.5) — claims sourcés, vérification adversariale sur shard indépendant, rapport avec coverage explicite sauvé dans ~/.claude/erom-plugin-artefacts/researchs/. Lancé en arrière-plan — Claude continue la conversation et traite le rapport à la notification de fin. 2e moteur deep hors quota Google (consomme le pool hebdo de l'abonnement X), budget d'agents borné par run. Triggers : /erom-research:deep-grok, 'deep Grok', 'lance une deep Grok', 'status deep Grok'. Complémentaire de deep-gemini (multi-rounds piloté Claude, gate plan)."
+description: "Deep research asynchrone via le workflow builtin /deep-research de Grok CLI (Grok 4.5) — claims sourcés, vérification adversariale sur shard indépendant, rapport avec coverage explicite sauvé dans ~/.claude/erom-store/researchs/. Lancé en arrière-plan — Claude continue la conversation et traite le rapport à la notification de fin. 2e moteur deep hors quota Google (consomme le pool hebdo de l'abonnement X), budget d'agents borné par run. Triggers : /erom-research:deep-grok, 'deep Grok', 'lance une deep Grok', 'status deep Grok'. Complémentaire de deep-gemini (multi-rounds piloté Claude, gate plan)."
 user-invocable: true
 allowed-tools: Bash, Read
 ---
@@ -21,26 +21,26 @@ $ARGUMENTS
 1. Parse les flags de `$ARGUMENTS` : `--budget N` (défaut 24 ; 8-12 pour une passe légère, 32+ pour une deep lourde — c'est l'`agent_budget` du workflow, cap dur de dépense), `--detach`. Le reste trimé = `<sujet>`. Vide → demander « Quoi deep-rechercher ? » et stop.
 2. Lance UN Bash **avec `run_in_background: true`** (c'est le mécanisme de reprise : notification automatique à la fin du run, zéro polling) :
    ```bash
-   "<CLI>" run "<sujet>" --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs" --project "$(basename "$(pwd)")" [--budget N]
+   "<CLI>" run "<sujet>" --out-dir "$HOME/.claude/erom-store/researchs" --project "$(basename "$(pwd)")" [--budget N]
    ```
    Avec `--detach` : utiliser la sous-commande `start` au lieu de `run`, en Bash normal court (le run survit alors à la fermeture de cette session ; reprise plus tard via status).
 3. Relaie tout de suite : run lancé en arrière-plan, durée typique 3-10 min, le rapport arrivera tout seul. **Reprends la conversation sans attendre.**
 4. À la notification de fin de tâche : lis `status.json` (tool Read, au chemin ABSOLU `status_path` imprimé dans l'enveloppe JSON du task output, ne le reconstruis pas — le run_id est dans l'enveloppe JSON du task output). Puis :
-   - `success` | `partial` → Read du rapport au chemin `report_path` du status.json (absolu, sous ~/.claude/erom-plugin-artefacts/researchs/) : restitue le chemin, le statut de vérification Grok (Verified/Partial), et les ~30 premières lignes verbatim (TL;DR + premiers claims). `partial` = couverture incomplète assumée, les limites sont listées en fin de rapport — les mentionner.
+   - `success` | `partial` → Read du rapport au chemin `report_path` du status.json (absolu, sous ~/.claude/erom-store/researchs/) : restitue le chemin, le statut de vérification Grok (Verified/Partial), et les ~30 premières lignes verbatim (TL;DR + premiers claims). `partial` = couverture incomplète assumée, les limites sont listées en fin de rapport — les mentionner.
    - `error` → cause (`error` du status.json) + queue de `worker.log`. Pas de findings inventés.
 5. Ne JAMAIS déclarer un run terminé sans avoir lu un `status.json` à statut terminal.
 
 ## status
 
 ```bash
-"<CLI>" status --latest --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"
+"<CLI>" status --latest --out-dir "$HOME/.claude/erom-store/researchs"
 ```
 (ou `<run_id>` à la place de `--latest`). `running` → donner l'âge et rappeler que la notification arrivera si le run est de cette session (sinon repasser plus tard). Un `running` avec pid mort est automatiquement réparé en `error` par le CLI. Statut terminal → même restitution que start étape 4.
 
 ## list
 
 ```bash
-"<CLI>" list --out-dir "$HOME/.claude/erom-plugin-artefacts/researchs"
+"<CLI>" list --out-dir "$HOME/.claude/erom-store/researchs"
 ```
 
 ## Notes

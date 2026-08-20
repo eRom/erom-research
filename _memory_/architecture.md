@@ -26,7 +26,7 @@ scripts/tests/               bun (2 fichiers) + python (1 fichier)
 
 **Flux deep-gemini** (le seul non trivial) : la skill construit matrice de preuves + angles, gate plan → `Workflow(deep-research.js)` → N angles en parallèle par round via subagents `erom-research:agy-run` → analyse de convergence (Claude) → red-team adversariale → synthèse → `render-report.mjs` produit le markdown.
 
-**Sorties** (0.5.0) : store central `~/.claude/erom-plugin-artefacts/researchs/` (plat, `<date>-<slug>.md`, frontmatter canonique title/type/engine/project/created ; artefacts sous `.runs/`, gitignorés ; versionnement par le nightly de `~/.claude`, aucune commande git dans les skills). Plus rien dans le projet courant.
+**Sorties** (0.5.0) : store central `~/.claude/erom-store/researchs/` (plat, `<date>-<slug>.md`, frontmatter canonique title/type/engine/project/created ; artefacts sous `.runs/`, gitignorés ; versionnement par le nightly de `~/.claude`, aucune commande git dans les skills). Plus rien dans le projet courant.
 
 **Dépendances externes critiques** : binaires `agy`, `grok` (+ `bun`), `nlm`, `node`. Chaque skill fait son préflight et s'arrête si le binaire manque ou si l'auth est expirée.
 
