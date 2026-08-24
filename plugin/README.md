@@ -1,4 +1,4 @@
-# erom-research — quatre moteurs de recherche profonde
+# erom-research - quatre moteurs de recherche profonde
 
 Plugin Claude Code. Quatre moteurs indépendants pour les questions où une
 recherche web d'un coup ne suffit pas, chacun avec un profil de coût, de
@@ -30,18 +30,18 @@ le pipeline piloté sans dépendance externe ni quota tiers.
 /erom-research:deep-notebook list
 ```
 
-**deep-gemini** — Claude décompose le sujet en matrice de preuves + angles, te montre
+**deep-gemini** - Claude décompose le sujet en matrice de preuves + angles, te montre
 le plan (gate, sautable avec `--yes`), puis lance un Workflow : N angles
 browsés en parallèle par round, analyse de convergence entre rounds (2 en
 `L`, jusqu'à 4 en `H`), vote 3 voix adversarial sur les claims centraux
 et mono-source, synthèse. Bloquant, 5-15 min.
 
-**deep-grok** — asynchrone : lancé en arrière-plan, la conversation continue, le
+**deep-grok** - asynchrone : lancé en arrière-plan, la conversation continue, le
 rapport arrive par notification (3-10 min). `--budget` est le cap dur de
 dépense en agents (défaut 24). `--detach` fait survivre le run à la fermeture
 de la session, à reprendre plus tard via `status`.
 
-**deep-notebook** — asynchrone (10-20 min) : crée un notebook dédié, lance une deep
+**deep-notebook** - asynchrone (10-20 min) : crée un notebook dédié, lance une deep
 search Google, importe et labellise les sources, produit une synthèse. Le
 notebook reste interrogeable indéfiniment.
 
@@ -64,7 +64,7 @@ Tous les rapports atterrissent dans le store central `~/.claude/erom-store/resea
 | `deep-claude` | aucun | aucune, quota Anthropic de la session |
 
 Chaque skill fait son préflight et s'arrête proprement si le binaire manque ou
-si l'auth est expirée — jamais de findings inventés sur un moteur mort.
+si l'auth est expirée - jamais de findings inventés sur un moteur mort.
 
 ## Composants
 
@@ -91,4 +91,4 @@ n'échappe à cette comparaison octet à octet (garde-fou du garde-fou).
 
 ## Licence
 
-MIT — Romain Ecarnot.
+MIT - Romain Ecarnot.
