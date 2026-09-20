@@ -3,3 +3,9 @@ __pycache__/
 .DS_Store
 node_modules/
 .claude/settings.local.json.bak
+graft/.cache/
+.superpowers/sdd/
+.pytest_cache/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
