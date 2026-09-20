@@ -1,5 +1,7 @@
 # erom-research - quatre moteurs de recherche profonde
 
+![erom-research](assets/erom-research.png)
+
 Plugin Claude Code. Quatre moteurs indépendants pour les questions où une
 recherche web d'un coup ne suffit pas, chacun avec un profil de coût, de
 latence et de livrable différent.
