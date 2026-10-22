@@ -127,7 +127,8 @@ Si la mission contient la ligne `AUTO_MODE=1`, la skill est appelée en headless
 - **Étape 5 (mémoire) sautée.** N'écris aucun fichier mémoire.
 - **Étape 6, point 2 (`SendMessage`) sauté.**
 - **Un seul `Write` pour le rapport**, succès ou échec, jamais d'écriture incrémentale : un fichier partiel serait pris pour un rapport.
-- **Échec à n'importe quelle étape** : en plus du texte d'échec habituel (étape 6, point 3, qui porte la cause jusqu'à la skill), écris avec `Write` un rapport d'échec à REPORT_PATH, frontmatter exactement :
+- **Ce `Write` est ton DERNIER appel d'outil**, et ton texte final tient en UNE ligne : `OK <REPORT_PATH>` ou `ÉCHEC <cause en une phrase>`. Aucune restitution, aucun résumé : la skill détecte le fichier dès son écriture, et un texte final long rouvrirait un tour parasite.
+- **Échec à n'importe quelle étape** : en plus du texte d'échec (étape 6, point 3, réduit à la ligne `ÉCHEC <cause>`, qui porte la cause jusqu'à la skill), écris avec `Write` un rapport d'échec à REPORT_PATH, frontmatter exactement :
 
   ```markdown
   ---

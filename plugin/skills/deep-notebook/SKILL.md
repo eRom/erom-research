@@ -51,8 +51,22 @@ Entre deux appels, lis toute task-notification de l'agent `notebook-creator` arr
    ```bash
    bun "${CLAUDE_PLUGIN_ROOT}/scripts/check-report.mjs" "<OUT>"
    ```
-2. Code 1 → `[ABORT] <la ligne rendue par le script>` ; code 2 (arguments invalides) → `[ABORT] <sortie du script>`. Si la ligne du code 1 commence par `Échec de l'agent`, mets aussi `<OUT>` à la corbeille (`trash "<OUT>"`, et si `trash` échoue, émets quand même le `[ABORT]`). Un rapport partiel (`Rapport incomplet : notebook_id absent`) reste en place pour diagnostic.
-3. Code 0 → Read `<OUT>`, puis la restitution habituelle du start 5 (chemin, notebook_id + URL, source_count, ~30 premières lignes verbatim, voie de suivi), **puis**, en toute dernière ligne, `[REPORT] <OUT>`. Rien après.
+2. Code 1 → `[ABORT] <la ligne rendue par le script>` ; code 2 (arguments invalides) → `[ABORT] <sortie du script>`. Si la ligne du code 1 commence par `Échec de l'agent`, mets aussi `<OUT>` à la corbeille (`trash "<OUT>"`, et si `trash` échoue, émets quand même le `[ABORT]`). Un rapport partiel (`Rapport incomplet : notebook_id absent`) reste en place pour diagnostic. Applique « Avant d'émettre » avant d'émettre ce `[ABORT]`.
+3. Code 0 → Read `<OUT>`, applique « Avant d'émettre », puis la restitution habituelle du start 5 (chemin, notebook_id + URL, source_count, ~30 premières lignes verbatim, voie de suivi), **puis**, en toute dernière ligne, `[REPORT] <OUT>`. Rien après.
+
+### Avant d'émettre
+
+L'agent écrit son rapport PUIS son texte final : sa task-notification peut arriver après la détection du rapport. Avec `claude -p --output-format json`, l'appelant ne lit que le `result` du DERNIER tour : une notification qui rouvre un tour après ta ligne finale la remplace et casse le contrat. Donc **ne termine jamais ton tour (restitution, `[REPORT]` ou `[ABORT]`) tant que la notification de `notebook-creator` n'est pas reçue** : vaut pour toute sortie une fois l'agent spawné, y compris `[ABORT]` sur check-report code 1, wait-for-file en échec ou délai de 40 min. Rien à attendre quand l'agent a déjà notifié (échec signalé, fin sans rapport) ou avant le spawn.
+
+Notification non reçue : jusqu'à 8 appels de pause (≈ 2 min), en **foreground**, en t'arrêtant dès qu'elle est arrivée (elle est livrée entre deux appels Bash) :
+
+```bash
+bun "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-file.mjs" "<OUT>.agent-done" 15
+```
+
+`<OUT>.agent-done` est un chemin que personne n'écrit : c'est une pause de 15 s qui laisse passer la notification. Le code 1 est ATTENDU ici et n'est PAS une erreur : la règle « code 1 bien avant 80 s = erreur » ne s'applique pas à ces pauses (≈ 15 s). Après 8 pauses sans notification, émets quand même.
+
+Si un tour s'ouvre sur une notification tardive de l'agent alors que ta ligne finale est déjà émise, ta réponse est UNIQUEMENT cette même ligne finale (`[REPORT] <OUT>` ou `[ABORT] <cause>`), strictement identique, sans restitution ni autre texte.
 
 ## Modes
 
