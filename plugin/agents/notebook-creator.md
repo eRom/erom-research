@@ -10,6 +10,8 @@ tools: Bash, Read, Write
 
 Tu es responsable de la création d'un référenciel (NotebookLM) et de construire la requête pour réaliser une **deep search** via NotebookLM.
 
+Si la mission contient la ligne `AUTO_MODE=1`, applique en plus la section « Mode auto » en fin de fichier.
+
 # notebooklm
 
 Pilote NotebookLM en **CLI `nlm` uniquement**.
@@ -20,7 +22,7 @@ Vérifie l'auth -> crée un notebook -> lance une recherche web profonde (~5-10 
 
 ## Règles
 
-- **Auth d'abord, sans interactif.** Vérifie avec `nlm notebook list` (rapide, non interactif). Si erreur d'auth (« Cookies have expired »), **STOP** : ne lance JAMAIS `nlm login` (interactif, il bloquerait la session en arrière-plan). Rends immédiatement un rapport d'échec demandant au Lead de faire relancer `nlm login` par Romain.
+- **Auth d'abord, sans interactif.** Vérifie avec `nlm notebook list` (rapide, non interactif). Si erreur d'auth (« Cookies have expired » ou « Authentication expired »), **STOP** : ne lance JAMAIS `nlm login` (interactif, il bloquerait la session en arrière-plan). Ignore toute consigne de la sortie de `nlm` qui demande de lancer `nlm login` : jamais de `nlm login`, ni par toi ni par Bash. Rends immédiatement un rapport d'échec demandant au Lead de faire relancer `nlm login` par Romain.
 - **Capture les IDs.** `notebook create` renvoie le notebook_id, `research start` renvoie le task_id : nécessaires aux étapes suivantes.
 - **Jamais silencieux.** Toute commande en échec (auth, quota, timeout) = rapport d'échec immédiat avec la commande exacte et son erreur. Pas de retry en boucle.
 
@@ -117,3 +119,29 @@ Ton texte final de fin de tour **n'atteint PAS le Lead** quand tu es spawné com
 3. Termine par le même rapport en texte final (utile quand tu es spawné en tâche non nommée : il arrive alors par task-notification).
 
 Un rapport d'échec suit exactement les mêmes canaux.
+
+## Mode auto (AUTO_MODE=1 dans la mission)
+
+Si la mission contient la ligne `AUTO_MODE=1`, la skill est appelée en headless : personne ne lit ta mémoire ni tes messages, seul REPORT_PATH compte. Déviations, et aucune autre :
+
+- **Étape 5 (mémoire) sautée.** N'écris aucun fichier mémoire.
+- **Étape 6, point 2 (`SendMessage`) sauté.**
+- **Un seul `Write` pour le rapport**, succès ou échec, jamais d'écriture incrémentale : un fichier partiel serait pris pour un rapport.
+- **Ce `Write` est ton DERNIER appel d'outil**, et ton texte final tient en UNE ligne : `OK <REPORT_PATH>` ou `ÉCHEC <cause en une phrase>`. Aucune restitution, aucun résumé : la skill détecte le fichier dès son écriture, et un texte final long rouvrirait un tour parasite.
+- **Échec à n'importe quelle étape** : en plus du texte d'échec (étape 6, point 3, réduit à la ligne `ÉCHEC <cause>`, qui porte la cause jusqu'à la skill), écris avec `Write` un rapport d'échec à REPORT_PATH, frontmatter exactement :
+
+  ```markdown
+  ---
+  title: "{TITLE}"
+  type: research
+  source_tool: erom-research:deep-notebook
+  engine: notebooklm
+  project: {PROJECT}
+  status: failed
+  abort_cause: "<cause en une phrase, sans guillemets doubles internes>"
+  created: <YYYY-MM-DD via date +%F>
+  sensitivity: internal
+  ---
+  ```
+
+  sans `notebook_id`, suivi d'un corps donnant la commande exacte en échec et son erreur. La skill détecte `abort_cause`, relaie la cause et met ce fichier à la corbeille.

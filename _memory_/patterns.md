@@ -1,6 +1,6 @@
 # Patterns et conventions
 
-_Mis à jour : 2026-08-15_
+_Mis à jour : 2026-10-22_
 
 ## Nommage
 
@@ -29,6 +29,10 @@ _Mis à jour : 2026-08-15_
 ## Skills
 
 Chaque skill fait un **préflight** (binaire présent, auth valide, chemins du plugin résolus) et s'arrête net sinon. Aucune ne déclare un run terminé sans avoir lu un statut terminal ou un rapport. Jamais de findings inventés sur un moteur mort, jamais d'auto-fire depuis un brainstorming.
+
+## Mode auto de deep-notebook
+
+Contrat headless (`--auto`, ligne finale `[REPORT] <chemin>` / `[ABORT] <cause>`) validé par un banc e2e dans `docs/evals/mode-auto/` (`cases.json`, `run-auto.ts`) : vraie session `claude -p`, contrôle de la dernière ligne, des outils interdits et des écritures mémoire. Rejeu : `bun docs/evals/mode-auto/run-auto.ts <empty|interactive|real|auth-ko>` (`auth-ko` : `--allow-auth-ko` ; `nlm logout` n'existe pas en 0.15.6, cas à rejouer par simulation avec un faux `nlm` en tête de PATH, non vérifié). Sorties dans `docs/evals/mode-auto/out/` (non versionné).
 
 ## Git et versionnage
 

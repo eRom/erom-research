@@ -45,7 +45,7 @@ de la session, à reprendre plus tard via `status`.
 
 **deep-notebook** - asynchrone (10-20 min) : crée un notebook dédié, lance une deep
 search Google, importe et labellise les sources, produit une synthèse. Le
-notebook reste interrogeable indéfiniment.
+notebook reste interrogeable indéfiniment. Un mode headless `--auto` existe pour les appels par un autre programme (voir `plugin/README.md`, section « Mode auto »).
 
 ## Sorties
 
