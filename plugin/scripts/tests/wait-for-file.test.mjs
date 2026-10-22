@@ -64,6 +64,19 @@ test("CLI: exit code 1 at the deadline when the file is absent", () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test("CLI: prints `timeout` on stdout at the deadline (exit 1) and nothing when the file is ready (exit 0)", () => {
+  const dir = makeTmpDir();
+  const missing = runCli(path.join(dir, "missing.md"), "1");
+  expect(missing.exitCode).toBe(1);
+  expect(missing.stdout.toString().trim()).toBe("timeout");
+  const file = path.join(dir, "report.md");
+  fs.writeFileSync(file, "content");
+  const ready = runCli(file, "5");
+  expect(ready.exitCode).toBe(0);
+  expect(ready.stdout.toString()).toBe("");
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test("CLI: exit code 2 on a relative path", () => {
   expect(runCli("relative/report.md", "5").exitCode).toBe(2);
 });

@@ -256,7 +256,7 @@ async function main(): Promise<number> {
   const def = cases[caseId];
   if (def.requiresFlag && !args.includes(def.requiresFlag)) {
     console.error(
-      `Case "${caseId}" refused: needs ${def.requiresFlag} (human action required, e.g. nlm logout).`,
+      `Case "${caseId}" refused: needs ${def.requiresFlag} (nlm logout does not exist in 0.15.6: replay by simulation with a fake nlm first in PATH, unverified).`,
     );
     return 2;
   }

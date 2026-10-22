@@ -1,6 +1,6 @@
 // Attend au premier plan qu'un fichier existe et ne soit pas vide.
 // Usage : bun wait-for-file.mjs <chemin absolu> <secondes>
-// Codes de sortie : 0 fichier prêt, 1 échéance atteinte, 2 argument invalide.
+// Codes de sortie : 0 fichier prêt (rien sur stdout), 1 échéance atteinte (stdout : `timeout`), 2 argument invalide.
 import * as path from "node:path";
 
 const MIN_SECONDS = 1;
@@ -37,5 +37,7 @@ if (import.meta.main) {
   if (!/^\d+$/.test(rawSeconds ?? "")) usage();
   const seconds = Number(rawSeconds);
   if (seconds < MIN_SECONDS || seconds > MAX_SECONDS) usage();
-  process.exit((await waitForFile(filePath, seconds)) ? 0 : 1);
+  if (await waitForFile(filePath, seconds)) process.exit(0);
+  console.log("timeout");
+  process.exit(1);
 }

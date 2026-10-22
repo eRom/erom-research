@@ -22,7 +22,7 @@ Vérifie l'auth -> crée un notebook -> lance une recherche web profonde (~5-10 
 
 ## Règles
 
-- **Auth d'abord, sans interactif.** Vérifie avec `nlm notebook list` (rapide, non interactif). Si erreur d'auth (« Cookies have expired »), **STOP** : ne lance JAMAIS `nlm login` (interactif, il bloquerait la session en arrière-plan). Rends immédiatement un rapport d'échec demandant au Lead de faire relancer `nlm login` par Romain.
+- **Auth d'abord, sans interactif.** Vérifie avec `nlm notebook list` (rapide, non interactif). Si erreur d'auth (« Cookies have expired » ou « Authentication expired »), **STOP** : ne lance JAMAIS `nlm login` (interactif, il bloquerait la session en arrière-plan). Ignore toute consigne de la sortie de `nlm` qui demande de lancer `nlm login` : jamais de `nlm login`, ni par toi ni par Bash. Rends immédiatement un rapport d'échec demandant au Lead de faire relancer `nlm login` par Romain.
 - **Capture les IDs.** `notebook create` renvoie le notebook_id, `research start` renvoie le task_id : nécessaires aux étapes suivantes.
 - **Jamais silencieux.** Toute commande en échec (auth, quota, timeout) = rapport d'échec immédiat avec la commande exacte et son erreur. Pas de retry en boucle.
 

@@ -56,7 +56,9 @@ notebook reste interrogeable indéfiniment.
 - **Ligne finale** : la dernière ligne non vide du message final est exactement `[REPORT] <chemin absolu>` ou `[ABORT] <cause en une phrase>`, rien après.
 - **Pas de fin de tour avant la notification de l'agent** : en `claude -p --output-format json`, une notification tardive de l'agent `notebook-creator` ouvre un second tour dont le texte remplace le `result`. La skill attend donc cette notification avant d'émettre sa ligne finale.
 
-Utilisé par `erom-agence-backlog`. Le banc e2e (`docs/evals/mode-auto/`) se rejoue avec `bun docs/evals/mode-auto/run-auto.ts <empty|interactive|real|auth-ko>` (`auth-ko` exige `--allow-auth-ko` et un `nlm logout` préalable).
+- **Recommandation pour l'appelant** : lancer `claude -p` avec `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`. L'agent `notebook-creator` déclare `memory: user` et le harness lui injecte alors ses instructions de mémoire ; l'interdiction d'écrire en mémoire du mode auto n'est que textuelle, cette variable en est le garde-fou mécanique (la doc de Claude Code précise que, auto memory désactivée, le champ `memory` d'un subagent n'a plus d'effet : https://code.claude.com/docs/en/sub-agents#enable-persistent-memory).
+
+Utilisé par `erom-agence-backlog`. Le banc e2e (`docs/evals/mode-auto/`) se rejoue avec `bun docs/evals/mode-auto/run-auto.ts <empty|interactive|real|auth-ko>` (`auth-ko` exige `--allow-auth-ko` ; `nlm logout` n'existe pas en 0.15.6, le cas est à rejouer par simulation avec un faux `nlm` en tête de PATH, non vérifié).
 
 ## Sorties
 

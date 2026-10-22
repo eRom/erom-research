@@ -96,7 +96,7 @@ Appel : prompt sur stdin, cwd `/Users/Shared/erom-agence-backlog-worker`, `claud
 |---|---|---|
 | `empty` | `/erom-research:deep-notebook --auto` | `[ABORT] Sujet vide`, durée < 2 min |
 | `real` | `/erom-research:deep-notebook --auto kondo, nettoyeur d'artefacts de build en Rust : alternatives et usage` | `[REPORT] /Users/recarnot/.claude/erom-store/researchs/<date>-<slug>.md`, `notebook_id` présent, durée entre 5 et 40 min |
-| `auth-ko` | `real` lancé après `nlm logout` (à faire seulement avec l'accord de Romain, qui devra relancer `nlm login` ensuite) | `[ABORT] nlm login requis…`, durée < 2 min |
+| `auth-ko` | `real` lancé après `nlm logout` (note : `nlm logout` n'existe pas en 0.15.6 ; cas à rejouer par simulation (faux `nlm` en tête de PATH), non vérifié) | `[ABORT] nlm login requis…`, durée < 2 min |
 | `interactive` | `/erom-research:deep-notebook kondo` (sans `--auto`) | la session rend la main en moins de 2 min sans ligne `[REPORT]`/`[ABORT]` (comportement inchangé) |
 
 - [ ] **Step 1: Écrire le banc et `cases.json`.**
