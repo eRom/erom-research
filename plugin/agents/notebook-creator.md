@@ -10,6 +10,8 @@ tools: Bash, Read, Write
 
 Tu es responsable de la création d'un référenciel (NotebookLM) et de construire la requête pour réaliser une **deep search** via NotebookLM.
 
+Si la mission contient la ligne `AUTO_MODE=1`, applique en plus la section « Mode auto » en fin de fichier.
+
 # notebooklm
 
 Pilote NotebookLM en **CLI `nlm` uniquement**.
@@ -117,3 +119,28 @@ Ton texte final de fin de tour **n'atteint PAS le Lead** quand tu es spawné com
 3. Termine par le même rapport en texte final (utile quand tu es spawné en tâche non nommée : il arrive alors par task-notification).
 
 Un rapport d'échec suit exactement les mêmes canaux.
+
+## Mode auto (AUTO_MODE=1 dans la mission)
+
+Si la mission contient la ligne `AUTO_MODE=1`, la skill est appelée en headless : personne ne lit ta mémoire ni tes messages, seul REPORT_PATH compte. Déviations, et aucune autre :
+
+- **Étape 5 (mémoire) sautée.** N'écris aucun fichier mémoire.
+- **Étape 6, point 2 (`SendMessage`) sauté.**
+- **Un seul `Write` pour le rapport**, succès ou échec, jamais d'écriture incrémentale : un fichier partiel serait pris pour un rapport.
+- **Échec à n'importe quelle étape** : en plus du texte d'échec habituel (étape 6, point 3, qui porte la cause jusqu'à la skill), écris avec `Write` un rapport d'échec à REPORT_PATH, frontmatter exactement :
+
+  ```markdown
+  ---
+  title: "{TITLE}"
+  type: research
+  source_tool: erom-research:deep-notebook
+  engine: notebooklm
+  project: {PROJECT}
+  status: failed
+  abort_cause: "<cause en une phrase, sans guillemets doubles internes>"
+  created: <YYYY-MM-DD via date +%F>
+  sensitivity: internal
+  ---
+  ```
+
+  sans `notebook_id`, suivi d'un corps donnant la commande exacte en échec et son erreur. La skill détecte `abort_cause`, relaie la cause et met ce fichier à la corbeille.

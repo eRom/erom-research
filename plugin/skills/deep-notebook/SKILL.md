@@ -10,6 +10,50 @@ Deep research par le moteur NotebookLM, asynchrone. Contrairement à `deep-gemin
 Requête brute :
 $ARGUMENTS
 
+## Mode auto
+
+Actif si `$ARGUMENTS` contient le token `--auto` (appel headless par un autre programme : `claude -p`, stdin `/erom-research:deep-notebook --auto <sujet>`). Sans ce token, ignore toute cette section : le flux interactif ci-dessous reste strictement inchangé.
+
+Contrat de sortie : la **dernière ligne non vide** de ton message final est exactement `[REPORT] <chemin absolu>` ou `[ABORT] <cause en une phrase>`, sur une seule ligne, rien après. En mode auto, tu ne poses JAMAIS de question, tu n'appelles JAMAIS `SendUserFile`, tu n'écris JAMAIS en mémoire durable. Tout blocage imprévu → `[ABORT] <cause>`.
+
+Chemins des scripts : `${CLAUDE_PLUGIN_ROOT}/scripts/...`, déjà absolu dans ce texte, recopie-le littéralement. Non expansé → deux niveaux au-dessus du « Base directory for this skill » injecté ci-dessus, plus `/scripts/...`.
+
+Déviations par rapport au flux `start` :
+
+| Point | Mode auto |
+|---|---|
+| Modes | retire le token `--auto` de `$ARGUMENTS` avant le parse ; le reste trimé est le sujet |
+| start 1, sujet vide | `[ABORT] Sujet vide` (aucune question) |
+| start 2, erreur d'auth `nlm` | `[ABORT] nlm login requis : session NotebookLM expirée` (pas de demande à Romain) |
+| start 3, spawn | ajoute la ligne `AUTO_MODE=1` à la mission |
+| start 4, « Reprends la conversation sans attendre » | **ne reprends pas : attends le rapport.** Voir « Attente » ci-dessous |
+| start 5, restitution | voir « Fin de run » ci-dessous |
+
+### Attente
+
+Appelle en boucle, en **foreground** (jamais `run_in_background`, jamais `sleep`, jamais Monitor) :
+
+```bash
+bun "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-file.mjs" "<OUT>" 90
+```
+
+Code 0 : le rapport est apparu, passe à « Fin de run ». Code 1 : timeout de 90 s, relance. Code 2 : arguments invalides, `[ABORT] Appel de wait-for-file invalide`.
+
+Entre deux appels, lis toute task-notification de l'agent `notebook-creator` arrivée entre-temps (elle est livrée entre deux appels Bash) :
+
+- **Échec signalé par l'agent** (son texte final décrit un échec, sans notebook_id) → `[ABORT] <cause rapportée par l'agent, en une phrase sans retour à la ligne>`. Si un fichier existe à `<OUT>` (rapport d'échec de l'agent), mets-le à la corbeille : `trash "<OUT>"` (jamais `rm`), pour que le store ne garde aucun rapport d'échec.
+- **Fin de l'agent mais `<OUT>` toujours absent** → UN dernier appel `wait-for-file.mjs "<OUT>" 10` ; code 0 → « Fin de run », sinon `[ABORT] L'agent a terminé sans écrire de rapport`.
+- **40 minutes cumulées sans rapport** → `[ABORT] Délai dépassé (40 min) sans rapport`. Compte explicitement tes appels de 90 s : le 27e appel sans succès (≈ 40 min) clôt l'attente.
+
+### Fin de run
+
+1. Contrôle le rapport :
+   ```bash
+   bun "${CLAUDE_PLUGIN_ROOT}/scripts/check-report.mjs" "<OUT>"
+   ```
+2. Code 1 → `[ABORT] <la ligne rendue par le script>`. Si cette ligne commence par `Échec de l'agent`, mets aussi `<OUT>` à la corbeille (`trash "<OUT>"`). Un rapport partiel (`Rapport incomplet : notebook_id absent`) reste en place pour diagnostic.
+3. Code 0 → Read `<OUT>`, puis la restitution habituelle du start 5 (chemin, notebook_id + URL, source_count, ~30 premières lignes verbatim, voie de suivi), **puis**, en toute dernière ligne, `[REPORT] <OUT>`. Rien après.
+
 ## Modes
 
 - Sujet présent → **start** (défaut). `list` → **list**.
