@@ -24,9 +24,9 @@ Déviations par rapport au flux `start` :
 |---|---|
 | Modes | retire le token `--auto` de `$ARGUMENTS` avant le parse ; le reste trimé est le sujet |
 | start 1, sujet vide | `[ABORT] Sujet vide` (aucune question) |
-| start 2, erreur d'auth `nlm` | `[ABORT] nlm login requis : session NotebookLM expirée` (pas de demande à Romain) |
+| start 2, préflight | erreur d'auth `nlm` → `[ABORT] nlm login requis : session NotebookLM expirée` (pas de demande à Romain) ; autre commande en échec → `[ABORT] <commande> en échec : <erreur>` |
 | start 3, spawn | ajoute la ligne `AUTO_MODE=1` à la mission |
-| start 4, « Reprends la conversation sans attendre » | **ne reprends pas : attends le rapport.** Voir « Attente » ci-dessous |
+| start 4, « Reprends la conversation sans attendre » | **ne reprends pas : attends le rapport.** Aucun message de relais, ne termine pas ton tour (un tour clos après un message de relais casse le contrat de dernière ligne) : enchaîne directement sur le premier appel `wait-for-file`. Voir « Attente » ci-dessous |
 | start 5, restitution | voir « Fin de run » ci-dessous |
 
 ### Attente
@@ -37,12 +37,12 @@ Appelle en boucle, en **foreground** (jamais `run_in_background`, jamais `sleep`
 bun "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-file.mjs" "<OUT>" 90
 ```
 
-Code 0 : le rapport est apparu, passe à « Fin de run ». Code 1 : timeout de 90 s, relance. Code 2 : arguments invalides, `[ABORT] Appel de wait-for-file invalide`.
+Code 0 : le rapport est apparu, passe à « Fin de run ». Code 1 : timeout de 90 s, relance ; mais un code 1 rendu bien avant 80 s est une erreur d'exécution, pas un timeout : `[ABORT] wait-for-file en échec : <sortie>`. Code 2 : arguments invalides, `[ABORT] Appel de wait-for-file invalide`.
 
 Entre deux appels, lis toute task-notification de l'agent `notebook-creator` arrivée entre-temps (elle est livrée entre deux appels Bash) :
 
-- **Échec signalé par l'agent** (son texte final décrit un échec, sans notebook_id) → `[ABORT] <cause rapportée par l'agent, en une phrase sans retour à la ligne>`. Si un fichier existe à `<OUT>` (rapport d'échec de l'agent), mets-le à la corbeille : `trash "<OUT>"` (jamais `rm`), pour que le store ne garde aucun rapport d'échec.
-- **Fin de l'agent mais `<OUT>` toujours absent** → UN dernier appel `wait-for-file.mjs "<OUT>" 10` ; code 0 → « Fin de run », sinon `[ABORT] L'agent a terminé sans écrire de rapport`.
+- **Échec signalé par l'agent** (son texte final décrit un échec, sans notebook_id) → `[ABORT] <cause rapportée par l'agent, en une phrase sans retour à la ligne>`. Si un fichier existe à `<OUT>` (rapport d'échec de l'agent), mets-le à la corbeille : `trash "<OUT>"` (jamais `rm`), pour que le store ne garde aucun rapport d'échec ; si `trash` échoue, émets quand même le `[ABORT]`.
+- **Fin de l'agent sans échec déclaré dans son texte final, mais `<OUT>` toujours absent** → UN dernier appel `wait-for-file.mjs "<OUT>" 10` ; code 0 → « Fin de run », sinon `[ABORT] L'agent a terminé sans écrire de rapport`.
 - **40 minutes cumulées sans rapport** → `[ABORT] Délai dépassé (40 min) sans rapport`. Compte explicitement tes appels de 90 s : le 27e appel sans succès (≈ 40 min) clôt l'attente.
 
 ### Fin de run
@@ -51,7 +51,7 @@ Entre deux appels, lis toute task-notification de l'agent `notebook-creator` arr
    ```bash
    bun "${CLAUDE_PLUGIN_ROOT}/scripts/check-report.mjs" "<OUT>"
    ```
-2. Code 1 → `[ABORT] <la ligne rendue par le script>`. Si cette ligne commence par `Échec de l'agent`, mets aussi `<OUT>` à la corbeille (`trash "<OUT>"`). Un rapport partiel (`Rapport incomplet : notebook_id absent`) reste en place pour diagnostic.
+2. Code 1 → `[ABORT] <la ligne rendue par le script>` ; code 2 (arguments invalides) → `[ABORT] <sortie du script>`. Si la ligne du code 1 commence par `Échec de l'agent`, mets aussi `<OUT>` à la corbeille (`trash "<OUT>"`, et si `trash` échoue, émets quand même le `[ABORT]`). Un rapport partiel (`Rapport incomplet : notebook_id absent`) reste en place pour diagnostic.
 3. Code 0 → Read `<OUT>`, puis la restitution habituelle du start 5 (chemin, notebook_id + URL, source_count, ~30 premières lignes verbatim, voie de suivi), **puis**, en toute dernière ligne, `[REPORT] <OUT>`. Rien après.
 
 ## Modes
