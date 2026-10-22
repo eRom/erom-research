@@ -47,6 +47,17 @@ de la session, à reprendre plus tard via `status`.
 search Google, importe et labellise les sources, produit une synthèse. Le
 notebook reste interrogeable indéfiniment.
 
+## Mode auto
+
+`deep-notebook` a un mode headless pour les appels par un autre programme (`claude -p`, stdin `/erom-research:deep-notebook --auto <sujet>`). Il s'active quand le token `--auto` figure n'importe où dans les arguments ; sans lui, le flux interactif reste strictement inchangé.
+
+- **Aucune interaction** : pas de question, pas de `SendUserFile`, aucune écriture en mémoire durable. Tout blocage imprévu se termine par un `[ABORT]`.
+- **Attente en foreground** : la skill ne rend pas la main après le lancement de l'agent, elle attend le rapport par tranches de 90 s avec `scripts/wait-for-file.mjs`, avec un plafond de 40 minutes.
+- **Ligne finale** : la dernière ligne non vide du message final est exactement `[REPORT] <chemin absolu>` ou `[ABORT] <cause en une phrase>`, rien après.
+- **Pas de fin de tour avant la notification de l'agent** : en `claude -p --output-format json`, une notification tardive de l'agent `notebook-creator` ouvre un second tour dont le texte remplace le `result`. La skill attend donc cette notification avant d'émettre sa ligne finale.
+
+Utilisé par `erom-agence-backlog`. Le banc e2e (`docs/evals/mode-auto/`) se rejoue avec `bun docs/evals/mode-auto/run-auto.ts <empty|interactive|real|auth-ko>` (`auth-ko` exige `--allow-auth-ko` et un `nlm logout` préalable).
+
 ## Sorties
 
 Tous les rapports atterrissent dans le store central `~/.claude/erom-store/researchs/` (plat, un fichier par recherche, projet d'origine en frontmatter `project:`) :
