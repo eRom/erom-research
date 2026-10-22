@@ -10,9 +10,12 @@
   "interactive": {
     "prompt": "/erom-research:deep-notebook kondo",
     "timeoutMs": 300000,
+    "mode": "stop-after-relay",
     "expect": {
-      "lastLineMatchesNone": ["^\\[REPORT\\] ", "^\\[ABORT\\] "],
-      "maxDurationMs": 120000
+      "lastLineMatchesNone": [
+        "^\\[REPORT\\] ",
+        "^\\[ABORT\\] "
+      ]
     }
   },
   "real": {

@@ -16,6 +16,7 @@ const OUT_DIR = path.join(REPO_ROOT, "docs/evals/mode-auto/out");
 const FORBIDDEN_TOOLS = ["SendUserFile", "AskUserQuestion", "SendMessage"];
 
 interface Expect {
+  // Mode "stop-after-relay" : le cas se juge sur le flux, la session est arrêtée au message de relais.
   lastLineEquals?: string;
   lastLineStartsWith?: string;
   lastLineMatches?: string;
@@ -26,6 +27,7 @@ interface Expect {
   maxDurationMs?: number;
 }
 interface CaseDef {
+  mode?: "stop-after-relay";
   prompt: string;
   timeoutMs: number;
   requiresFlag?: string;
@@ -144,13 +146,53 @@ function analyzeStream(raw: string) {
   };
 }
 
-async function readAll(stream: ReadableStream<Uint8Array>, sink: { text: string }) {
+// Cherche dans le flux le spawn de notebook-creator puis le message de relais du fil principal.
+function findRelay(raw: string) {
+  let spawned = false;
+  let autoModeInPrompt = false;
+  let relayText: string | null = null;
+  const mainThreadTexts: string[] = [];
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let event: any;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (event.type !== "assistant" || !Array.isArray(event.message?.content)) continue;
+    const isMainThread = !event.parent_tool_use_id;
+    for (const block of event.message.content) {
+      if (
+        isMainThread &&
+        block?.type === "tool_use" &&
+        block.name === "Agent" &&
+        block.input?.subagent_type === "erom-research:notebook-creator"
+      ) {
+        spawned = true;
+        if (String(block.input?.prompt ?? "").includes("AUTO_MODE=1")) autoModeInPrompt = true;
+      }
+      if (isMainThread && block?.type === "text" && typeof block.text === "string") {
+        mainThreadTexts.push(block.text);
+        if (spawned && relayText === null && block.text.trim()) relayText = block.text;
+      }
+    }
+  }
+  return { spawned, autoModeInPrompt, relayText, mainThreadTexts };
+}
+
+async function readAll(
+  stream: ReadableStream<Uint8Array>,
+  sink: { text: string },
+  onChunk?: () => void,
+) {
   const decoder = new TextDecoder();
   const reader = stream.getReader();
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     sink.text += decoder.decode(value, { stream: true });
+    onChunk?.();
   }
 }
 
@@ -204,7 +246,20 @@ async function main(): Promise<number> {
 
   const stdoutSink = { text: "" };
   const stderrSink = { text: "" };
-  const reading = Promise.all([readAll(proc.stdout, stdoutSink), readAll(proc.stderr, stderrSink)]);
+  // Mode stop-after-relay : dès que le relais suit le spawn, on arrête la session (SIGTERM puis SIGKILL après 5 s).
+  let stoppedEarly = false;
+  const onStdoutChunk = def.mode === "stop-after-relay"
+    ? () => {
+        if (stoppedEarly || findRelay(stdoutSink.text).relayText === null) return;
+        stoppedEarly = true;
+        proc.kill("SIGTERM");
+        setTimeout(() => proc.kill("SIGKILL"), 5000);
+      }
+    : undefined;
+  const reading = Promise.all([
+    readAll(proc.stdout, stdoutSink, onStdoutChunk),
+    readAll(proc.stderr, stderrSink),
+  ]);
   const exited = proc.exited.then(() => "exited");
   await exited;
   // Après la sortie (ou le kill), un petit délai de grâce pour vider les pipes
@@ -217,6 +272,16 @@ async function main(): Promise<number> {
   await Bun.write(path.join(OUT_DIR, `${caseId}.stream.jsonl`), raw);
 
   const analysis = analyzeStream(raw);
+  const relay = def.mode === "stop-after-relay" ? findRelay(raw) : null;
+  if (relay?.relayText) {
+    // Pas d'événement result dans ce mode : le dernier mot est celui du message de relais.
+    analysis.lastLine =
+      relay.relayText
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0)
+        .pop() ?? "";
+  }
   const memoryWrites = diffSnapshots(before, takeSnapshot());
 
   const reportMatch = analysis.lastLine.match(/^\[REPORT\] (.+)$/);
@@ -239,8 +304,17 @@ async function main(): Promise<number> {
         ? "timeout: claude -p stayed alive (background agent)"
         : `timeout: killed after ${def.timeoutMs} ms`,
     );
-  } else if (!analysis.hasResult) {
+  } else if (!analysis.hasResult && !relay) {
     failures.push(`no result event in stream (stderr: ${stderrSink.text.trim().slice(0, 300)})`);
+  }
+  if (relay) {
+    if (!relay.spawned) failures.push("no Agent tool_use with subagent_type erom-research:notebook-creator");
+    if (relay.autoModeInPrompt) failures.push("spawn prompt contains AUTO_MODE=1 (interactive flow must not)");
+    if (relay.spawned && relay.relayText === null) failures.push("no main-thread relay text after the spawn");
+    const markerLine = relay.mainThreadTexts
+      .flatMap((t) => t.split("\n"))
+      .find((l) => /^\[(REPORT|ABORT)\] /.test(l));
+    if (markerLine) failures.push(`main thread printed a contract line: "${markerLine}"`);
   }
   if (exp.lastLineEquals !== undefined && analysis.lastLine !== exp.lastLineEquals) {
     failures.push(`lastLine "${analysis.lastLine}" != "${exp.lastLineEquals}"`);
@@ -291,6 +365,7 @@ async function main(): Promise<number> {
     memoryWrites,
     skillBaseDir: analysis.skillBaseDir,
     durationMs,
+    ...(relay ? { stoppedEarly } : {}),
     pass: failures.length === 0,
     why: failures.join(" ; "),
   };
