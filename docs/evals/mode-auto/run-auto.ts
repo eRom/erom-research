@@ -3,7 +3,7 @@
 // Usage : bun docs/evals/mode-auto/run-auto.ts <caseId> [--allow-auth-ko]
 // Sortie : un objet JSON sur stdout (aussi écrit dans out/<caseId>.json),
 // flux brut dans out/<caseId>.stream.jsonl. Code de sortie 0 si pass, 1 sinon.
-import { existsSync, readdirSync, statSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, statSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import { checkReport } from "../../../plugin/scripts/check-report.mjs";
@@ -99,6 +99,8 @@ function analyzeStream(raw: string) {
   let resultText: string | null = null;
   let isError = false;
   let initPluginPath: string | null = null;
+  const pluginPaths: string[] = [];
+  const cachePaths: string[] = [];
   for (const line of raw.split("\n")) {
     if (!line.trim()) continue;
     let event: any;
@@ -109,14 +111,19 @@ function analyzeStream(raw: string) {
     }
     // L'événement init liste les plugins chargés : source de repli pour la base du skill.
     if (event.type === "system" && event.subtype === "init" && Array.isArray(event.plugins)) {
-      const plugin = event.plugins.find((p: any) => p?.name === "erom-research");
-      if (plugin?.path) initPluginPath = plugin.path;
+      // Toutes les entrées erom-research comptent : une copie du cache publié serait un échec.
+      for (const plugin of event.plugins) {
+        if (plugin?.name === "erom-research" && plugin.path) pluginPaths.push(plugin.path);
+      }
+      initPluginPath = pluginPaths[0] ?? null;
     }
     if (event.type === "assistant" && Array.isArray(event.message?.content)) {
       for (const block of event.message.content) {
-        if (block?.type === "tool_use" && FORBIDDEN_TOOLS.includes(block.name)) {
-          forbidden.push(block.name);
-        }
+        if (block?.type !== "tool_use") continue;
+        if (FORBIDDEN_TOOLS.includes(block.name)) forbidden.push(block.name);
+        // Un chemin vers le cache publié du plugin dans une entrée d'outil (fil principal ou sous-agent).
+        const cacheHit = JSON.stringify(block.input ?? {}).match(/[^\s"\\]*\/plugins\/cache\/[^\s"\\]*erom-research[^\s"\\]*/);
+        if (cacheHit) cachePaths.push(cacheHit[0]);
       }
     }
     if (event.type === "result") {
@@ -136,6 +143,8 @@ function analyzeStream(raw: string) {
     lastLine,
     hasResult: resultText !== null,
     isError,
+    pluginPathsOutsideRepo: pluginPaths.filter((p) => p !== PLUGIN_DIR && !p.startsWith(`${PLUGIN_DIR}/`)),
+    cachePaths,
     // Le texte « Base directory for this skill » n'apparaît que si le skill passe par l'outil Skill ;
     // une commande slash est développée hors flux. Repli : chemin du plugin dans l'événement init.
     skillBaseDir: baseDirMatch
@@ -181,16 +190,54 @@ function findRelay(raw: string) {
   return { spawned, autoModeInPrompt, relayText, mainThreadTexts };
 }
 
+// Descendants (récursifs) d'un pid, via pgrep -P.
+function descendants(pid: number): number[] {
+  const out = Bun.spawnSync(["pgrep", "-P", String(pid)]).stdout.toString();
+  const children = out.split("\n").filter(Boolean).map(Number);
+  return children.flatMap((child) => [child, ...descendants(child)]);
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function signal(pid: number, sig: NodeJS.Signals): void {
+  try {
+    process.kill(pid, sig);
+  } catch {
+    // processus déjà terminé
+  }
+}
+
+// Arrête claude et tout son arbre : SIGTERM, 5 s de grâce, puis SIGKILL sur les survivants.
+// Les descendants sont relevés avant le SIGTERM (ils seraient réattachés à init après la mort du parent).
+async function killTree(proc: { pid: number; exited: Promise<number> }): Promise<void> {
+  const known = new Set<number>(descendants(proc.pid));
+  signal(proc.pid, "SIGTERM");
+  for (const pid of known) signal(pid, "SIGTERM");
+  await Promise.race([proc.exited, Bun.sleep(5000)]);
+  await Bun.sleep(1000);
+  if (isAlive(proc.pid)) for (const pid of descendants(proc.pid)) known.add(pid);
+  for (const pid of [...known, proc.pid]) if (isAlive(pid)) signal(pid, "SIGKILL");
+}
+
 async function readAll(
   stream: ReadableStream<Uint8Array>,
   sink: { text: string },
   onChunk?: () => void,
+  onBytes?: (bytes: Uint8Array) => void,
 ) {
   const decoder = new TextDecoder();
   const reader = stream.getReader();
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
+    onBytes?.(value);
     sink.text += decoder.decode(value, { stream: true });
     onChunk?.();
   }
@@ -219,6 +266,9 @@ async function main(): Promise<number> {
   }
 
   mkdirSync(OUT_DIR, { recursive: true });
+  // Flux brut écrit au fil de l'eau : il survit à un crash du banc.
+  const streamFile = path.join(OUT_DIR, `${caseId}.stream.jsonl`);
+  writeFileSync(streamFile, "");
   const before = takeSnapshot();
   const started = Date.now();
 
@@ -239,9 +289,10 @@ async function main(): Promise<number> {
   );
 
   let timedOut = false;
+  let killing: Promise<void> | null = null;
   const timer = setTimeout(() => {
     timedOut = true;
-    proc.kill("SIGKILL");
+    killing ??= killTree(proc);
   }, def.timeoutMs);
 
   const stdoutSink = { text: "" };
@@ -252,16 +303,16 @@ async function main(): Promise<number> {
     ? () => {
         if (stoppedEarly || findRelay(stdoutSink.text).relayText === null) return;
         stoppedEarly = true;
-        proc.kill("SIGTERM");
-        setTimeout(() => proc.kill("SIGKILL"), 5000);
+        killing ??= killTree(proc);
       }
     : undefined;
   const reading = Promise.all([
-    readAll(proc.stdout, stdoutSink, onStdoutChunk),
+    readAll(proc.stdout, stdoutSink, onStdoutChunk, (bytes) => appendFileSync(streamFile, bytes)),
     readAll(proc.stderr, stderrSink),
   ]);
   const exited = proc.exited.then(() => "exited");
   await exited;
+  if (killing) await killing;
   // Après la sortie (ou le kill), un petit délai de grâce pour vider les pipes
   // sans rester bloqué par un petit-enfant qui garderait le tube ouvert.
   await Promise.race([reading, Bun.sleep(5000)]);
@@ -269,7 +320,6 @@ async function main(): Promise<number> {
   const durationMs = Date.now() - started;
 
   const raw = stdoutSink.text;
-  await Bun.write(path.join(OUT_DIR, `${caseId}.stream.jsonl`), raw);
 
   const analysis = analyzeStream(raw);
   const relay = def.mode === "stop-after-relay" ? findRelay(raw) : null;
@@ -289,7 +339,9 @@ async function main(): Promise<number> {
   let reportExists = false;
   if (reportPath) {
     try {
-      reportExists = statSync(reportPath).size > 0;
+      const stat = statSync(reportPath);
+      // Un rapport antérieur au lancement ne prouve rien : il doit avoir été écrit par ce run.
+      reportExists = stat.size > 0 && stat.mtimeMs >= started;
     } catch {
       reportExists = false;
     }
@@ -300,8 +352,8 @@ async function main(): Promise<number> {
   const exp = def.expect;
   if (timedOut) {
     failures.push(
-      caseId === "interactive"
-        ? "timeout: claude -p stayed alive (background agent)"
+      def.mode === "stop-after-relay"
+        ? "timeout: no relay seen"
         : `timeout: killed after ${def.timeoutMs} ms`,
     );
   } else if (!analysis.hasResult && !relay) {
@@ -349,6 +401,13 @@ async function main(): Promise<number> {
   const runWrites = memoryWrites.filter((w) => w.attributedTo === "run");
   if (runWrites.length > 0) {
     failures.push(`memory writes by the run: ${runWrites.map((w) => w.path).join(", ")}`);
+  }
+  if (analysis.isError) failures.push("result is_error");
+  if (analysis.pluginPathsOutsideRepo.length > 0) {
+    failures.push(`erom-research plugin loaded outside the repo: ${analysis.pluginPathsOutsideRepo.join(", ")}`);
+  }
+  if (analysis.cachePaths.length > 0) {
+    failures.push(`tool input references the published cache: ${[...new Set(analysis.cachePaths)].join(", ")}`);
   }
   if (analysis.skillBaseDir === null) {
     failures.push("skill base directory not found in stream");

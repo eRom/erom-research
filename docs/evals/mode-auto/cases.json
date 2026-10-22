@@ -15,7 +15,8 @@
       "lastLineMatchesNone": [
         "^\\[REPORT\\] ",
         "^\\[ABORT\\] "
-      ]
+      ],
+      "maxDurationMs": 120000
     }
   },
   "real": {
