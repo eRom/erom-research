@@ -1,0 +1,38 @@
+{
+  "empty": {
+    "prompt": "/erom-research:deep-notebook --auto",
+    "timeoutMs": 300000,
+    "expect": {
+      "lastLineEquals": "[ABORT] Sujet vide",
+      "maxDurationMs": 120000
+    }
+  },
+  "interactive": {
+    "prompt": "/erom-research:deep-notebook kondo",
+    "timeoutMs": 300000,
+    "expect": {
+      "lastLineMatchesNone": ["^\\[REPORT\\] ", "^\\[ABORT\\] "],
+      "maxDurationMs": 120000
+    }
+  },
+  "real": {
+    "prompt": "/erom-research:deep-notebook --auto kondo, nettoyeur d'artefacts de build en Rust : alternatives et usage",
+    "timeoutMs": 2700000,
+    "expect": {
+      "lastLineMatches": "^\\[REPORT\\] /Users/recarnot/\\.claude/erom-store/researchs/\\d{4}-\\d{2}-\\d{2}-.+\\.md$",
+      "reportMustExist": true,
+      "notebookIdRequired": true,
+      "minDurationMs": 300000,
+      "maxDurationMs": 2400000
+    }
+  },
+  "auth-ko": {
+    "prompt": "/erom-research:deep-notebook --auto kondo, nettoyeur d'artefacts de build en Rust : alternatives et usage",
+    "timeoutMs": 300000,
+    "requiresFlag": "--allow-auth-ko",
+    "expect": {
+      "lastLineStartsWith": "[ABORT] nlm login requis",
+      "maxDurationMs": 120000
+    }
+  }
+}
