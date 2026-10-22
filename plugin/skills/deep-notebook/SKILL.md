@@ -2,7 +2,7 @@
 name: deep-notebook
 description: "Deep research via NotebookLM (CLI nlm) — crée un notebook dédié, deep search web Google (~40-70 sources importées, auto-label), synthèse et rapport local avec notebook_id. Moteur deep : le livrable est un référentiel PERSISTANT réinterrogeable ensuite, pour les sujets qui vont vivre. Asynchrone — subagent background, la conversation continue, restitution à la notification. Triggers : /erom-research:deep-notebook, 'deep NotebookLM', 'deep nlm', 'deep notebook', 'crée un référentiel sur', 'notebook deep'. Complémentaire de deep-gemini (multi-rounds piloté, justesse) et deep-grok (2e moteur hors quota Google). Sauve dans ~/.claude/erom-store/researchs/."
 user-invocable: true
-allowed-tools: Bash, Read, Agent, TaskStop
+allowed-tools: Bash, Read, Agent, TaskStop, ToolSearch
 ---
 
 Deep research par le moteur NotebookLM, asynchrone. Contrairement à `deep-gemini` (Claude pilote matrice + rounds) et `deep-grok` (rapport one-shot d'un moteur indépendant), le livrable est double : un rapport local ET un référentiel persistant de ~40-70 sources (le notebook), réinterrogeable ensuite (voir « Suivi » plus bas). À réserver aux sujets qui vont vivre, ceux où on reviendra poser des questions.
@@ -58,7 +58,7 @@ Entre deux appels, lis toute task-notification de l'agent `notebook-creator` arr
 
 L'agent écrit son rapport PUIS son texte final : sa task-notification peut arriver après la détection du rapport. Avec `claude -p --output-format json`, l'appelant ne lit que le `result` du DERNIER tour : une notification qui rouvre un tour après ta ligne finale la remplace et casse le contrat. Donc **ne termine jamais ton tour (restitution, `[REPORT]` ou `[ABORT]`) tant que la notification de `notebook-creator` n'est pas reçue** : vaut pour toute sortie une fois l'agent spawné, y compris `[ABORT]` sur check-report code 1, wait-for-file en échec ou délai de 40 min. Rien à attendre quand l'agent a déjà notifié (échec signalé, fin sans rapport) ou avant le spawn.
 
-**Arrêt de l'agent avant un `[ABORT]`.** Tout `[ABORT]` émis après le spawn alors que la notification de l'agent n'est PAS arrivée (délai de 40 min, wait-for-file en échec, check-report en code 1, fin des 8 pauses sur un chemin d'`[ABORT]`) commence par arrêter l'agent avec le tool `TaskStop` (son task id vient du résultat du spawn `Agent`), pour qu'aucun rapport tardif n'atterrisse dans le store. Ensuite seulement, les pauses ci-dessous laissent passer la notification d'arrêt, puis tu émets. Si `TaskStop` échoue, émets quand même l'`[ABORT]`.
+**Arrêt de l'agent avant un `[ABORT]`.** Tout `[ABORT]` émis après le spawn alors que la notification de l'agent n'est PAS arrivée (délai de 40 min, wait-for-file en échec, check-report en code 1) commence par arrêter l'agent avec le tool `TaskStop` (son task id vient du résultat du spawn `Agent` ; si `TaskStop` est un tool différé, charge d'abord son schéma avec `ToolSearch` `select:TaskStop`), pour qu'aucun rapport tardif n'atterrisse dans le store. Ensuite seulement, les pauses ci-dessous laissent passer la notification d'arrêt, puis tu émets. Si `TaskStop` échoue, émets quand même l'`[ABORT]`.
 
 Notification non reçue : jusqu'à 8 appels de pause (≈ 2 min), en **foreground**, en t'arrêtant dès qu'elle est arrivée (elle est livrée entre deux appels Bash) :
 
