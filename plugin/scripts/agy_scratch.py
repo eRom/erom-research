@@ -35,7 +35,9 @@ def find_agy():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--timeout", default="360")
-    ap.add_argument("--model", default="Gemini 3.8 Flash (High)")
+    # Slug de base + --effort séparé (agy refuse --effort sur un libellé « Gemini 4 Hydrogen »)
+    ap.add_argument("--model", default="gemini-4-hydrogen")
+    ap.add_argument("--effort", default="high")
     ap.add_argument("--in", dest="ins", action="append", default=[])
     ap.add_argument("--in-dir", dest="indirs", action="append", default=[])
     ap.add_argument("--out", dest="outs", action="append", default=[])
@@ -78,7 +80,7 @@ def main():
         prompt = prompt.replace(orig, sp)
 
     to = a.timeout if str(a.timeout).endswith("s") else f"{a.timeout}s"
-    cmd = [agy, "--dangerously-skip-permissions", "--model", a.model, "--add-dir", scratch,
+    cmd = [agy, "--dangerously-skip-permissions", "--model", a.model, "--effort", a.effort, "--add-dir", scratch,
            "--print-timeout", to, "--print", prompt]
     quota_hit = False
     try:

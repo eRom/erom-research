@@ -64,9 +64,11 @@ Un délimiteur de fermeture écrit `--- ` (espace en fin de ligne) n'est jamais 
 
 `claude plugin update erom-research` → `✘ Plugin "erom-research" not found`. Il faut `claude plugin update erom-research@erom-marketplace`. [candidat 1x - session 2026-07-30]
 
-## `agy` valide strictement le libellé du modèle
+## `agy` valide strictement le modèle
 
-Un `--model` inconnu fait échouer l'appel avec `model X is not recognized`, **et la liste des libellés valides s'affiche dans l'erreur** — c'est la façon la plus rapide de la consulter. Le format attendu est le libellé (`Gemini 3.8 Flash (High)`), pas le slug rendu par `agy models` (`gemini-3.8-flash-high`).
+Un `--model` inconnu fait échouer l'appel avec `model X is not recognized`, **et la liste des libellés valides s'affiche dans l'erreur** — c'est la façon la plus rapide de la consulter.
+
+Depuis Gemini 4 (2026-11-13), l'effort passe par `--effort low|medium|high|xhigh|max` avec le **slug de base** : `--model gemini-4-hydrogen --effort high` répond. Le libellé ne marche pas avec ce flag : `--model "Gemini 4 Hydrogen" --effort high` → `--effort is not supported for model "Gemini 4 Hydrogen"`. Revérifier : `agy --dangerously-skip-permissions --model gemini-4-hydrogen --effort high --print-timeout 90s --print 'Réponds juste OK' < /dev/null`.
 
 Conséquence : un défaut de modèle périmé ne casse rien tant que l'ancien modèle existe encore, il dégrade juste silencieusement la qualité. `agy_scratch.py` tournait ainsi sur 3.5 alors que le reste du harnais était en 3.8.
 
